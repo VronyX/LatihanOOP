@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace LatihanOOP.Models;
+namespace LatihanOOP.Services;
 
-internal class Standard
+internal class RoomServiceOrder
 {
 }
