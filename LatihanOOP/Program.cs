@@ -1,5 +1,6 @@
-﻿using LatihanOOP.Services;
-using LatihanOOP.Models.Rooms;
+﻿using LatihanOOP.Models;
+using LatihanOOP.Services;
+using System.ComponentModel.Design;
 
 namespace LatihanOOP;
 
@@ -48,5 +49,11 @@ class Program
 
         // 7. Menampilkan daftar kamar terbaru untuk melihat perubahan status
         hotel.DisplayRooms();
+        Guest guest = new Guest("Mas mas", "08123456789");
+
+        while (true)
+        {
+            Menu();
+        }
     }
 }
