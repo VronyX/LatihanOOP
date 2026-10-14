@@ -5,12 +5,12 @@ namespace LatihanOOP.Models;
 
 public class Invoice
 {
-    private int roomCharge;
-    private int additionalCharge;
-    private int roomServiceCharge;
-    private int subTotal;
-    private int memberDiscount;
-    private int total;
+    private decimal roomCharge;
+    private decimal additionalCharge;
+    private decimal roomServiceCharge;
+    private decimal subTotal;
+    private decimal memberDiscount;
+    private decimal total;
     private InvoiceStatus status;
 
     public Invoice(Reservation reservation)
@@ -28,9 +28,9 @@ public class Invoice
         status = InvoiceStatus.Pending;
     }
 
-    public int CalculateRoomCharge(Reservation reservation)
+    public decimal CalculateRoomCharge(Reservation reservation)
     {
-        int totalCharge = 0;
+        decimal totalCharge = 0;
 
         DateTime dateIn = reservation.GetDateIn();
         DateTime dateOut = reservation.GetDateOut();
@@ -47,32 +47,32 @@ public class Invoice
         return totalCharge;
     }
 
-    private int CalculateAdditionalCharge(Reservation reservation)
+    private decimal CalculateAdditionalCharge(Reservation reservation)
     {
         Room room = reservation.GetRoom();
-        int additionalChargePerNight = room.GetAditionalChargePerWeek();
+        decimal additionalChargePerNight = room.GetAdditionalChargePerNight();
 
         int lengthOfStay = reservation.GetLengthOfStay(reservation.GetDateIn(),reservation.GetDateOut());
 
         return additionalChargePerNight * lengthOfStay;
     }
 
-    public int CalculateSubTotal()
+    public decimal CalculateSubTotal()
     {
         return roomCharge + additionalCharge + roomServiceCharge;
     }
 
-    public int CalculateDiscount(bool isMember)
+    public decimal CalculateDiscount(bool isMember)
     {
         if (!isMember)
         {
             return 0;
         }
-
-        return (int)(subTotal * 0.10);
+        
+        return subTotal * (decimal)0.10;
     }
 
-    public int CalculateTotal()
+    public decimal CalculateTotal()
     {
         return subTotal - memberDiscount;
     }

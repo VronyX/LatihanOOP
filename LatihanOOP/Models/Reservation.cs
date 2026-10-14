@@ -65,7 +65,7 @@ public class Reservation
             return false;
         }
 
-        room.SetBooked(true);
+        room.SetIsBooked(true);
         status = ReservationStatus.CheckedIn;
 
         return true;
@@ -80,7 +80,7 @@ public class Reservation
 
         Invoice invoice = new Invoice(this);
 
-        room.SetBooked(false);
+        room.SetIsBooked(false);
         status = ReservationStatus.CheckedOut;
 
         return invoice;
