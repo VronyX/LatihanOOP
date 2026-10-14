@@ -18,13 +18,6 @@ public class Reservation
 
     public Reservation(DateTime dateIn, int lengthOfStay, Guest guest, Room room)
     {
-        if (!ValidateLengthOfStay(lengthOfStay))
-        {
-            throw new ArgumentException(
-                "Lama menginap harus antara 1 sampai 14 malam."
-            );
-        }
-
         this.id = nextId++;
         this.dateIn = dateIn;
         this.dateOut = dateIn.AddDays(lengthOfStay);
@@ -75,7 +68,9 @@ public class Reservation
     {
         if (status != ReservationStatus.CheckedIn)
         {
-            throw new InvalidOperationException("Reservasi belum check-in atau sudah selesai.");
+            Console.WriteLine("Checkout gagal. Reservasi belum check-in atau sudah selesai.");
+
+            return null;
         }
 
         Invoice invoice = new Invoice(this);
