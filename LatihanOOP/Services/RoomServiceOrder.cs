@@ -12,4 +12,15 @@ public class RoomServiceOrder
         Amount = amount;
         OrderDate = DateTime.Now;
     }
+
+    public static int GetAdditionalServicePrice(int serviceId)
+    {
+        return serviceId switch
+        {
+            1 => 50000,
+            2 => 15000,
+            3 => 35000,
+            _ => 0
+        };
+    }
 }
