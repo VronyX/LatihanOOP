@@ -1,143 +1,108 @@
 ﻿using LatihanOOP.Enums;
 using LatihanOOP.Models.Rooms;
-using LatihanOOP.Services;
 
 namespace LatihanOOP.Models;
 
 public class Reservation
 {
-    private static int nextId = 1;
+    private static int _nextId = 1;
+    private readonly List<(string Name, decimal Amount)> _orders = new();
 
-    private int id;
-    private DateTime dateIn;
-    private DateTime dateOut;
-    private ReservationStatus status;
-    private Guest guest;
-    private Room room;
-    private int roomServiceTotal;
+    public int ID { get; }
+    public DateTime DateIn { get; }
+    public DateTime DateOut { get; }
+    public RoomStatus Status { get; private set; }
+    public Guest Guest { get; }
+    public Room Room { get; }
 
-    public Reservation(DateTime dateIn, int lengthOfStay, Guest guest, Room room)
+    public decimal RoomServiceTotal =>
+        _orders.Sum(order => order.Amount);
+
+    public IReadOnlyList<(string Name, decimal Amount)> Orders => _orders;
+
+    public Reservation(
+        DateTime dateIn,
+        int lengthOfStay,
+        Guest guest,
+        Room room)
     {
-        this.id = nextId++;
-        this.dateIn = dateIn;
-        this.dateOut = dateIn.AddDays(lengthOfStay);
-        this.status = ReservationStatus.Reserved;
-        this.guest = guest;
-        this.room = room;
+        if (dateIn.Date < DateTime.Today)
+            throw new ArgumentException(
+                $"Tanggal check-in tidak boleh sebelum hari ini ({DateTime.Today:dd-MM-yyyy}).");
+
+        if (!ValidateLengthOfStay(lengthOfStay))
+            throw new ArgumentException(
+                "Lama menginap harus antara 1 sampai 14 malam.");
+
+        ID = _nextId++;
+        DateIn = dateIn.Date;
+        DateOut = dateIn.Date.AddDays(lengthOfStay);
+        Guest = guest;
+        Room = room;
+        Status = RoomStatus.Reserved;
     }
 
-    public ReservationStatus GetStatus()
-    {
-        return status;
-    }
+    public bool GetStatus() => Status == RoomStatus.Occupied;
 
     public bool ValidateLengthOfStay(int lengthOfStay)
-    {
-        return lengthOfStay >= 1 && lengthOfStay <= 14;
-    }
+        => lengthOfStay >= 1 && lengthOfStay <= 14;
 
     public int GetLengthOfStay(DateTime dateIn, DateTime dateOut)
-    {
-        return (dateOut - dateIn).Days;
-    }
-
-    public int GetRoomServiceTotal()
-    {
-        return roomServiceTotal;
-    }
+        => (dateOut - dateIn).Days;
 
     public bool CheckIn()
     {
-        if (status != ReservationStatus.Reserved)
-        {
+        if (Status != RoomStatus.Reserved || Room.IsBooked)
             return false;
-        }
 
-        if (room.GetStatus())
-        {
+        if (DateTime.Today < DateIn || DateTime.Today >= DateOut)
             return false;
-        }
 
-        room.SetIsBooked(true);
-        status = ReservationStatus.CheckedIn;
+        Room.SetIsBooked(true);
+        Status = RoomStatus.Occupied;
 
         return true;
     }
 
-    public Invoice CheckOut()
+    public Invoice? CheckOut()
     {
-        if (status != ReservationStatus.CheckedIn)
-        {
-            Console.WriteLine("Checkout gagal. Reservasi belum check-in atau sudah selesai.");
-
+        if (Status != RoomStatus.Occupied)
             return null;
-        }
 
         Invoice invoice = new Invoice(this);
 
-        room.SetIsBooked(false);
-        status = ReservationStatus.CheckedOut;
+        Room.SetIsBooked(false);
+        Status = RoomStatus.Available;
 
         return invoice;
     }
 
-
-    public bool AddRoomService(int serviceId)
+    // Mencatat room service jika tipe kamar mendukung.
+    public bool AddRoomService(int amount)
     {
-        if (status != ReservationStatus.CheckedIn)
-        {
+        if (Status != RoomStatus.Occupied || !Room.SupportRoomService())
             return false;
-        }
 
-        if (!room.SupportRoomService())
+        (string Name, decimal Amount) order = amount switch
         {
+            1 => ("Nasi Goreng", 50000m),
+            2 => ("Coca-Cola", 15000m),
+            3 => ("Ayam Penyet", 35000m),
+            _ => ("", 0m)
+        };
+
+        if (order.Amount == 0)
             return false;
-        }
 
-        int serviceCost = RoomServiceOrder.GetAdditionalServicePrice(serviceId);
-
-        if (serviceCost <= 0)
-        {
-            return false;
-        }
-
-        roomServiceTotal += serviceCost;
+        _orders.Add(order);
         return true;
     }
 
-
     public void CancelReserved(int ID)
     {
-        if (this.id != ID)
-        {
+        if (this.ID != ID || Status != RoomStatus.Reserved)
             return;
-        }
 
-        if (status != ReservationStatus.Reserved)
-        {
-            return;
-        }
-
-        status = ReservationStatus.Cancelled;
-    }
-
-    public DateTime GetDateIn()
-    {
-        return dateIn;
-    }
-
-    public DateTime GetDateOut()
-    {
-        return dateOut;
-    }
-
-    public Room GetRoom()
-    {
-        return room;
-    }
-
-    public Guest GetGuest()
-    {
-        return guest;
+        Status = RoomStatus.Available;
     }
 }

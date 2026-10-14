@@ -2,93 +2,38 @@
 
 public abstract class Room
 {
-    private int _no;
-    private int _floor;
-    private decimal _price;
-    private bool _isBooked;
-
-    public int No
-    {
-        get => _no;
-        private set => _no = value;
-    }
-
-    public int Floor
-    {
-        get => _floor;
-        private set => _floor = value;
-    }
-
-    public decimal Price
-    {
-        get => _price;
-        set
-        {
-            if (value <= 0)
-                throw new ArgumentException("Nightly rate must be more than 0.");
-
-            _price = value;
-        }
-    }
-
-    public bool IsBooked
-    {
-        get => _isBooked;
-        private set => _isBooked = value;
-    }
+    public int No { get; }
+    public int Floor { get; }
+    public decimal Price { get; private set; }
+    public bool IsBooked { get; private set; }
 
     protected Room(int no, int floor, decimal price)
     {
         if (price <= 0)
-            throw new ArgumentException("Tarif per malam harus lebih dari 0");
+            throw new ArgumentException("Tarif harus lebih dari 0.");
 
-        _no = no;
-        _floor = floor;
-        _price = price;
-        _isBooked = false;
+        No = no;
+        Floor = floor;
+        Price = price;
     }
 
-    // Mengubah status kamar menjadi terisi
-    public void SetIsBooked(bool isCheckIn)
+    // Mengubah status kamar melalui method.
+    public void SetIsBooked(bool status)
     {
-        if (isCheckIn)
-            IsBooked = true;
-        else
-        {
-            IsBooked = false;
-        }
+        IsBooked = status;
     }
 
-    // Mengecek status kamar
-    public virtual bool GetStatus()
-    {
-        return IsBooked;
-    }
-
-    // Harga akhir pekan naik 20%
+    // Tarif akhir pekan naik 20%.
     public virtual decimal GetNightlyPrice(DateTime date)
     {
-        decimal nightlyPrice = Price;
+        bool weekend = date.DayOfWeek is DayOfWeek.Friday
+            or DayOfWeek.Saturday;
 
-        // Cek apakah hari Jumat atau Sabtu
-        if (date.DayOfWeek == DayOfWeek.Friday || date.DayOfWeek == DayOfWeek.Saturday)
-        {
-            nightlyPrice += nightlyPrice * 0.20m;
-        }
-
-        return nightlyPrice;
+        return weekend ? Price * 1.20m : Price;
     }
+
+    public bool GetStatus() => IsBooked;
 
     public abstract bool SupportRoomService();
-
-    public abstract decimal GetAdditionalChargePerNight();
-
-    public virtual void AddRoomService(string description, decimal amount)
-    {
-        if (!SupportRoomService())
-        {
-            throw new InvalidOperationException(
-                "Kamar ini tidak mendukung room service.");
-        }
-    }
+    public abstract decimal GetAdditionalChargePerWeek();
 }

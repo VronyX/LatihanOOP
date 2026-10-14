@@ -1,109 +1,109 @@
 ﻿using LatihanOOP.Enums;
-using LatihanOOP.Models.Rooms;
 
 namespace LatihanOOP.Models;
 
 public class Invoice
 {
-    private decimal roomCharge;
-    private decimal additionalCharge;
-    private decimal roomServiceCharge;
-    private decimal subTotal;
-    private decimal memberDiscount;
-    private decimal total;
-    private InvoiceStatus status;
+    private decimal _roomCharge;
+    private decimal _additionalCharge;
+    private decimal _roomServiceCharge;
+    private decimal _subTotal;
+    private decimal _memberDiscount;
+    private decimal _total;
+
+    public InvoiceStatus Status { get; private set; }
+    public decimal Total => _total;
 
     public Invoice(Reservation reservation)
     {
-        roomCharge = CalculateRoomCharge(reservation);
-        additionalCharge = CalculateAdditionalCharge(reservation);
-        roomServiceCharge = reservation.GetRoomServiceTotal();
+        CalculateRoomCharge(reservation);
 
-        subTotal = CalculateSubTotal();
-        memberDiscount = CalculateDiscount(
-            reservation.GetGuest().GetStatus()
-        );
-        total = CalculateTotal();
+        _additionalCharge =
+            reservation.Room.GetAdditionalChargePerWeek()
+            * reservation.GetLengthOfStay(
+                reservation.DateIn, reservation.DateOut);
 
-        status = InvoiceStatus.Pending;
+        _roomServiceCharge = reservation.RoomServiceTotal;
+
+        CalculateSubTotal();
+        CalculateDiscount(reservation.Guest.GetStatus());
+        CalculateTotal();
+
+        Status = InvoiceStatus.Pending;
     }
 
     public decimal CalculateRoomCharge(Reservation reservation)
     {
-        decimal totalCharge = 0;
+        _roomCharge = 0m;
 
-        DateTime dateIn = reservation.GetDateIn();
-        DateTime dateOut = reservation.GetDateOut();
-        int lengthOfStay = reservation.GetLengthOfStay(dateIn, dateOut);
+        int nights = reservation.GetLengthOfStay(
+            reservation.DateIn, reservation.DateOut);
 
-        Room room = reservation.GetRoom();
-
-        for (int i = 0; i < lengthOfStay; i++)
+        for (int i = 0; i < nights; i++)
         {
-            DateTime currentDate = dateIn.AddDays(i);
-            totalCharge += room.GetNightlyPrice(currentDate);
+            DateTime date = reservation.DateIn.AddDays(i);
+
+            // Harga kamar sudah memperhitungkan akhir pekan.
+            _roomCharge += reservation.Room.GetNightlyPrice(date);
         }
 
-        return totalCharge;
-    }
-
-    private decimal CalculateAdditionalCharge(Reservation reservation)
-    {
-        Room room = reservation.GetRoom();
-        decimal additionalChargePerNight = room.GetAdditionalChargePerNight();
-
-        int lengthOfStay = reservation.GetLengthOfStay(reservation.GetDateIn(),reservation.GetDateOut());
-
-        return additionalChargePerNight * lengthOfStay;
+        return _roomCharge;
     }
 
     public decimal CalculateSubTotal()
     {
-        return roomCharge + additionalCharge + roomServiceCharge;
+        _subTotal = _roomCharge
+                  + _additionalCharge
+                  + _roomServiceCharge;
+
+        return _subTotal;
     }
 
     public decimal CalculateDiscount(bool isMember)
     {
-        if (!isMember)
-        {
-            return 0;
-        }
-        
-        return subTotal * (decimal)0.10;
+        _memberDiscount = isMember ? _subTotal * 0.10m : 0m;
+        return _memberDiscount;
     }
 
     public decimal CalculateTotal()
     {
-        return subTotal - memberDiscount;
+        _total = _subTotal - _memberDiscount;
+        return _total;
     }
 
-    public void PrintDetails()
+    public void PrintDetails(Reservation reservation)
     {
         Console.WriteLine("\n========== INVOICE ==========");
-        Console.WriteLine($"Room Charge       : Rp{roomCharge:N0}");
-        Console.WriteLine($"Additional Charge : Rp{additionalCharge:N0}");
-        Console.WriteLine($"Room Service      : Rp{roomServiceCharge:N0}");
-        Console.WriteLine($"Subtotal          : Rp{subTotal:N0}");
-        Console.WriteLine($"Member Discount   : Rp{memberDiscount:N0}");
-        Console.WriteLine("-----------------------------");
-        Console.WriteLine($"Total             : Rp{total:N0}");
-        Console.WriteLine($"Payment Status    : {status}");
-        Console.WriteLine("=============================");
+        Console.WriteLine($"ID Reservasi   : {reservation.ID}");
+        Console.WriteLine($"Nama Tamu      : {reservation.Guest.Name}");
+        Console.WriteLine($"Nomor Kamar    : {reservation.Room.No}");
+        Console.WriteLine($"Check-in       : {reservation.DateIn:dd-MM-yyyy}");
+        Console.WriteLine($"Check-out      : {reservation.DateOut:dd-MM-yyyy}");
+        Console.WriteLine($"Tarif Kamar    : Rp{_roomCharge:N0}");
+        Console.WriteLine($"Biaya Tambahan : Rp{_additionalCharge:N0}");
+        Console.WriteLine($"Room Service   : Rp{_roomServiceCharge:N0}");
+
+        foreach (var order in reservation.Orders)
+            Console.WriteLine($"- {order.Name}: Rp{order.Amount:N0}");
+
+        Console.WriteLine($"Subtotal       : Rp{_subTotal:N0}");
+        Console.WriteLine($"Diskon Member  : Rp{_memberDiscount:N0}");
+        Console.WriteLine($"Total          : Rp{_total:N0}");
+        Console.WriteLine($"Status         : {Status}");
     }
 
-    public void Payment(int paidAmount)
+    public void Payment(decimal paidAmount)
     {
-        if (paidAmount <= 0 || paidAmount != total)
+        if (Status != InvoiceStatus.Pending || paidAmount < _total)
         {
-            status = InvoiceStatus.Failed;
-
-            Console.WriteLine("Pembayaran gagal. Masukkan nominal yang sesuai.");
+            Status = InvoiceStatus.Failed;
+            Console.WriteLine("Pembayaran gagal atau nominal kurang.");
             return;
         }
 
-        status = InvoiceStatus.Paid;
+        Status = InvoiceStatus.Paid;
 
-        Console.WriteLine("Pembayaran berhasil!");
-        Console.WriteLine($"Total dibayar: Rp{paidAmount:N0}");
+        Console.WriteLine("Pembayaran berhasil.");
+        Console.WriteLine($"Kembalian: Rp{paidAmount - _total:N0}");
     }
 }
