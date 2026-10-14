@@ -25,7 +25,7 @@ public abstract class Room
         set
         {
             if (value <= 0)
-                throw new ArgumentException("Tarif per malam harus lebih dari 0.");
+                throw new ArgumentException("Nightly rate must be more than 0.");
 
             _price = value;
         }
@@ -40,7 +40,7 @@ public abstract class Room
     protected Room(int no, int floor, decimal price)
     {
         if (price <= 0)
-            throw new ArgumentException("Tarif per malam harus lebih dari 0.");
+            throw new ArgumentException("Tarif per malam harus lebih dari 0");
 
         _no = no;
         _floor = floor;
