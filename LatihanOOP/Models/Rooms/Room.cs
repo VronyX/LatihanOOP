@@ -49,21 +49,14 @@ public abstract class Room
     }
 
     // Mengubah status kamar menjadi terisi
-    public void CheckIn()
+    public void SetIsBooked(bool isCheckIn)
     {
-        if (IsBooked)
-            throw new InvalidOperationException("Kamar sudah terisi.");
-
-        IsBooked = true;
-    }
-
-    // Mengubah status kamar menjadi kosong
-    public void CheckOut()
-    {
-        if (!IsBooked)
-            throw new InvalidOperationException("Kamar belum di-check-in.");
-
-        IsBooked = false;
+        if (isCheckIn)
+            IsBooked = true;
+        else
+        {
+            IsBooked = false;
+        }
     }
 
     // Mengecek status kamar
@@ -77,8 +70,8 @@ public abstract class Room
     {
         decimal nightlyPrice = Price;
 
-        if (date.DayOfWeek == DayOfWeek.Friday ||
-            date.DayOfWeek == DayOfWeek.Saturday)
+        // Cek apakah hari Jumat atau Sabtu
+        if (date.DayOfWeek == DayOfWeek.Friday || date.DayOfWeek == DayOfWeek.Saturday)
         {
             nightlyPrice += nightlyPrice * 0.20m;
         }

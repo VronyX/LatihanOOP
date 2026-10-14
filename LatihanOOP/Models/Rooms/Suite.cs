@@ -2,19 +2,17 @@
 
 public class Suite : Room
 {
-    private const decimal ButlerServiceCharge = 250000m;
+    private const decimal ButlerCharge = 250000m;
 
-    public Suite(int no, int floor, decimal price) : base(no, floor, price)
-    {
-    }
+    public Suite(int no, int floor, decimal price) : base(no, floor, price) { }
 
-    public override bool SupportRoomService()
-    {
-        return true; // Suite mendukung room service
-    }
+    public override bool SupportRoomService() => true;
 
-    public override decimal GetAdditionalChargePerNight()
+    public override decimal GetAdditionalChargePerNight() => ButlerCharge;
+
+    public override decimal GetNightlyPrice(DateTime date)
     {
-        return ButlerServiceCharge; // Layanan butler Rp 250.000 per malam
+        // Harga dasar + 20% weekend + 250.000 butler service per malam
+        return base.GetNightlyPrice(date) + GetAdditionalChargePerNight();
     }
 }

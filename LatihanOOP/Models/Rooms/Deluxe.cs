@@ -4,17 +4,15 @@ public class Deluxe : Room
 {
     private const decimal BreakfastCharge = 100000m;
 
-    public Deluxe(int no, int floor, decimal price) : base(no, floor, price)
-    {
-    }
+    public Deluxe(int no, int floor, decimal price) : base(no, floor, price) { }
 
-    public override bool SupportRoomService()
-    {
-        return true; // Deluxe mendukung room service
-    }
+    public override bool SupportRoomService() => true;
 
-    public override decimal GetAdditionalChargePerNight()
+    public override decimal GetAdditionalChargePerNight() => BreakfastCharge;
+
+    public override decimal GetNightlyPrice(DateTime date)
     {
-        return BreakfastCharge; // Wajib sarapan Rp 100.000 per malam
+        // Harga dasar + 20% weekend + 100.000 sarapan per malam
+        return base.GetNightlyPrice(date) + GetAdditionalChargePerNight();
     }
 }

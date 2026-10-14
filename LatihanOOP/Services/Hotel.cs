@@ -31,13 +31,13 @@ public class Hotel
         // 2. Mengisi 5 Kamar Deluxe (Lantai 2, Nomor 201 - 205, Tarif Rp 600.000)
         for (int i = 0; i < 5; i++)
         {
-            _deluxeRooms[i] = new Deluxe(201 + i, 2, 600000m);
+            _deluxeRooms[i] = new Deluxe(201 + i, 2, 500000m);
         }
 
         // 3. Mengisi 5 Kamar Suite (Lantai 3, Nomor 301 - 305, Tarif Rp 1.200.000)
         for (int i = 0; i < 5; i++)
         {
-            _suiteRooms[i] = new Suite(301 + i, 3, 1200000m);
+            _suiteRooms[i] = new Suite(301 + i, 3, 800000m);
         }
     }
 
