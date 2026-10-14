@@ -21,14 +21,6 @@ public class Reservation
 
     public Reservation(DateTime dateIn, int lengthOfStay, Guest guest, Room room)
     {
-        if (dateIn.Date < DateTime.Today)
-            throw new ArgumentException(
-                $"Tanggal check-in tidak boleh sebelum hari ini ({DateTime.Today:dd-MM-yyyy}).");
-
-        if (!ValidateLengthOfStay(lengthOfStay))
-            throw new ArgumentException(
-                "Lama menginap harus antara 1 sampai 14 malam.");
-
         this.id = nextId++;
         this.dateIn = dateIn.Date;
         this.dateOut = dateIn.Date.AddDays(lengthOfStay);

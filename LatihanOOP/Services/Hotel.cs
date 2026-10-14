@@ -87,7 +87,15 @@ public class Hotel
 
     public Reservation? FindReservation(int id)
     {
-        return _reservations.FirstOrDefault(item => item.GetId() == id);
+        for (int i = 0; i < reservationCount; i++)
+        {
+            if (_reservations[i].GetId() == id)
+            {
+                return _reservations[i];
+            }
+        }
+
+        return null;
     }
 
     public float GetRoomPercentage()

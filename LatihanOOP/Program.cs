@@ -147,6 +147,11 @@ public class Program
         }
 
         Reservation? reservation = _hotel.FindReservation(id);
+        if (reservation == null)
+        {
+            Console.WriteLine("Reservation not found.");
+            return;
+        }
 
         if (reservation != null && reservation.CheckIn())
             Console.WriteLine("Check-in successful.");
