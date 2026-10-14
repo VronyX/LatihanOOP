@@ -1,6 +1,6 @@
 ﻿namespace LatihanOOP.Enums;
 
-public enum PaymentStatus
+public enum InvoiceStatus
 {
     Paid = 1,
     Pending = 2,

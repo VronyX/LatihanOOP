@@ -4,6 +4,6 @@ using System.Text;
 
 namespace LatihanOOP.Models.Rooms;
 
-internal class Room
+public class Room
 {
 }

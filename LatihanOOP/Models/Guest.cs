@@ -1,9 +1,20 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿namespace LatihanOOP.Models;
 
-namespace LatihanOOP.Models;
-
-internal class Guest
+public class Guest
 {
+    public string Name {  get; set; }
+    public string Phone {  get; set; }
+    private bool isMember;
+
+    public Guest(string name, string phone)
+    {
+        Name = name;
+        Phone = phone;
+        isMember = true;
+    }
+
+    public bool GetStatus()
+    {
+        return isMember;
+    }
 }
