@@ -11,6 +11,6 @@ public class Standard : Room
     public override decimal GetNightlyPrice(DateTime date)
     {
         // Memanggil base untuk menghitung harga dasar + 20% weekend
-        return base.GetNightlyPrice(date) + GetAdditionalChargePerNight();
+        return base.GetNightlyPrice(date);
     }
 }

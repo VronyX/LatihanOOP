@@ -14,7 +14,7 @@ public class Reservation
     private ReservationStatus status;
     private Guest guest;
     private Room room;
-    private int roomServiceTotal;
+    private decimal roomServiceTotal;
 
     public Reservation(DateTime dateIn, int lengthOfStay, Guest guest, Room room)
     {
@@ -41,7 +41,7 @@ public class Reservation
         return (dateOut - dateIn).Days;
     }
 
-    public int GetRoomServiceTotal()
+    public decimal GetRoomServiceTotal()
     {
         return roomServiceTotal;
     }

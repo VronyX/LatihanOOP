@@ -13,6 +13,6 @@ public class Suite : Room
     public override decimal GetNightlyPrice(DateTime date)
     {
         // Harga dasar + 20% weekend + 250.000 butler service per malam
-        return base.GetNightlyPrice(date) + GetAdditionalChargePerNight();
+        return base.GetNightlyPrice(date);
     }
 }

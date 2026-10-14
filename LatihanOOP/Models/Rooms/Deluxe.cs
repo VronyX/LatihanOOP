@@ -13,6 +13,6 @@ public class Deluxe : Room
     public override decimal GetNightlyPrice(DateTime date)
     {
         // Harga dasar + 20% weekend + 100.000 sarapan per malam
-        return base.GetNightlyPrice(date) + GetAdditionalChargePerNight();
+        return base.GetNightlyPrice(date);
     }
 }

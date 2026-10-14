@@ -91,7 +91,7 @@ public class Invoice
         Console.WriteLine("=============================");
     }
 
-    public void Payment(int paidAmount)
+    public void Payment(decimal paidAmount)
     {
         if (paidAmount <= 0 || paidAmount != total)
         {
