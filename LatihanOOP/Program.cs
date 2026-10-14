@@ -8,7 +8,7 @@ class Program
 {
     static void Main(string[] args)
     {
-        Console.WriteLine("=== SISTEM MANAJEMEN HOTEL ===");
+        Guest guest = new Guest("Mas mas", "08123456789");
 
         // 1. Inisialisasi Objek Hotel
         Hotel hotel = new Hotel();
@@ -49,7 +49,7 @@ class Program
 
         // 7. Menampilkan daftar kamar terbaru untuk melihat perubahan status
         hotel.DisplayRooms();
-        Guest guest = new Guest("Mas mas", "08123456789");
+        
 
         while (true)
         {
