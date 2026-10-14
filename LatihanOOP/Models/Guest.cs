@@ -8,16 +8,13 @@ public class Guest
 
     public Guest(string name, string phone, bool isMember)
     {
-        if (string.IsNullOrWhiteSpace(name))
-            throw new ArgumentException("Nama wajib diisi.");
-
-        if (string.IsNullOrWhiteSpace(phone))
-            throw new ArgumentException("Nomor telepon wajib diisi.");
-
         Name = name;
         Phone = phone;
         IsMember = isMember;
     }
 
-    public bool GetStatus() => IsMember;
+    public bool GetStatus()
+    {
+        return IsMember;
+    }
 }

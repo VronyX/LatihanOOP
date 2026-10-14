@@ -11,6 +11,6 @@ public class Deluxe : Room
 
     public override bool SupportRoomService() => true;
 
-    public override decimal GetAdditionalChargePerWeek()
+    public override decimal GetAdditionalChargePerNight()
         => BreakfastCharge;
 }

@@ -15,6 +15,7 @@ public abstract class Room
         No = no;
         Floor = floor;
         Price = price;
+        IsBooked = false;
     }
 
     // Mengubah status kamar melalui method.
@@ -35,5 +36,5 @@ public abstract class Room
     public bool GetStatus() => IsBooked;
 
     public abstract bool SupportRoomService();
-    public abstract decimal GetAdditionalChargePerWeek();
+    public abstract decimal GetAdditionalChargePerNight();
 }

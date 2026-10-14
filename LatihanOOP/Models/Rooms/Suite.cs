@@ -11,6 +11,6 @@ public class Suite : Room
 
     public override bool SupportRoomService() => true;
 
-    public override decimal GetAdditionalChargePerWeek()
+    public override decimal GetAdditionalChargePerNight()
         => ServiceCharge;
 }

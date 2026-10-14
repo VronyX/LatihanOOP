@@ -1,30 +1,25 @@
 ﻿using LatihanOOP.Enums;
 using LatihanOOP.Models.Rooms;
+using LatihanOOP.Services;
 
 namespace LatihanOOP.Models;
 
 public class Reservation
 {
-    private static int _nextId = 1;
-    private readonly List<(string Name, decimal Amount)> _orders = new();
+    private static int nextId = 1;
 
-    public int ID { get; }
-    public DateTime DateIn { get; }
-    public DateTime DateOut { get; }
-    public RoomStatus Status { get; private set; }
-    public Guest Guest { get; }
-    public Room Room { get; }
+    private int id;
+    private DateTime dateIn;
+    private DateTime dateOut;
+    private ReservationStatus status;
+    private Guest guest;
+    private Room room;
+    private decimal roomServiceTotal;
+    private RoomServiceOrder[] orders = new RoomServiceOrder[50];
+    private int orderCount;
 
-    public decimal RoomServiceTotal =>
-        _orders.Sum(order => order.Amount);
 
-    public IReadOnlyList<(string Name, decimal Amount)> Orders => _orders;
-
-    public Reservation(
-        DateTime dateIn,
-        int lengthOfStay,
-        Guest guest,
-        Room room)
+    public Reservation(DateTime dateIn, int lengthOfStay, Guest guest, Room room)
     {
         if (dateIn.Date < DateTime.Today)
             throw new ArgumentException(
@@ -34,75 +29,188 @@ public class Reservation
             throw new ArgumentException(
                 "Lama menginap harus antara 1 sampai 14 malam.");
 
-        ID = _nextId++;
-        DateIn = dateIn.Date;
-        DateOut = dateIn.Date.AddDays(lengthOfStay);
-        Guest = guest;
-        Room = room;
-        Status = RoomStatus.Reserved;
+        this.id = nextId++;
+        this.dateIn = dateIn.Date;
+        this.dateOut = dateIn.Date.AddDays(lengthOfStay);
+        this.guest = guest;
+        this.room = room;
+        this.status = ReservationStatus.Reserved;
+
+        this.roomServiceTotal = 0;
+        this.orderCount = 0;
     }
 
-    public bool GetStatus() => Status == RoomStatus.Occupied;
+    public static bool ValidateLengthOfStay(int lengthOfStay)
+    {
+        return lengthOfStay >= 1 && lengthOfStay <= 14;
+    }
 
-    public bool ValidateLengthOfStay(int lengthOfStay)
-        => lengthOfStay >= 1 && lengthOfStay <= 14;
+    public static Room? FindAvailableRoom(Room[] rooms, Reservation[] reservations, int reservationCount, DateTime dateIn, DateTime dateOut, string roomType)
+    {
+        foreach (Room room in rooms)
+        {
+            if (!room.GetType().Name.Equals(
+                    roomType,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
 
-    public int GetLengthOfStay(DateTime dateIn, DateTime dateOut)
-        => (dateOut - dateIn).Days;
+            if (IsRoomAvailable(
+                    room,
+                    reservations,
+                    reservationCount,
+                    dateIn,
+                    dateOut))
+            {
+                return room;
+            }
+        }
+
+        return null;
+    }
+
+    private static bool IsRoomAvailable(Room room, Reservation[] reservations, int reservationCount, DateTime dateIn, DateTime dateOut)
+    {
+        for (int i = 0; i < reservationCount; i++)
+        {
+            Reservation reservation =
+                reservations[i];
+
+            if (reservation.room.No != room.No)
+                continue;
+
+            if (reservation.status ==
+                    ReservationStatus.Cancelled ||
+                reservation.status ==
+                    ReservationStatus.CheckedOut)
+            {
+                continue;
+            }
+
+            bool dateOverlap = dateIn.Date < reservation.dateOut.Date && dateOut.Date > reservation.dateIn.Date;
+
+            if (dateOverlap)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     public bool CheckIn()
     {
-        if (Status != RoomStatus.Reserved || Room.IsBooked)
+        if (status != ReservationStatus.Reserved)
+        {
+            return false;
+        }
+        if (room.IsBooked)
+        {
+            return false;
+        }
+
+        if (DateTime.Today < dateIn || DateTime.Today >= dateOut)
             return false;
 
-        if (DateTime.Today < DateIn || DateTime.Today >= DateOut)
-            return false;
-
-        Room.SetIsBooked(true);
-        Status = RoomStatus.Occupied;
+        room.SetIsBooked(true);
+        status = ReservationStatus.CheckedIn;
 
         return true;
     }
 
     public Invoice? CheckOut()
     {
-        if (Status != RoomStatus.Occupied)
+        if (status != ReservationStatus.CheckedIn)
+        {
             return null;
+        }
 
-        Invoice invoice = new Invoice(this);
-
-        Room.SetIsBooked(false);
-        Status = RoomStatus.Available;
-
-        return invoice;
+        return new Invoice(this);
     }
 
-    // Mencatat room service jika tipe kamar mendukung.
-    public bool AddRoomService(int amount)
+    public bool CompleteCheckOut()
     {
-        if (Status != RoomStatus.Occupied || !Room.SupportRoomService())
-            return false;
-
-        (string Name, decimal Amount) order = amount switch
+        if (status != ReservationStatus.CheckedIn)
         {
-            1 => ("Nasi Goreng", 50000m),
-            2 => ("Coca-Cola", 15000m),
-            3 => ("Ayam Penyet", 35000m),
-            _ => ("", 0m)
-        };
-
-        if (order.Amount == 0)
             return false;
+        }
 
-        _orders.Add(order);
+        room.SetIsBooked(false);
+        status = ReservationStatus.CheckedOut;
+
         return true;
     }
 
-    public void CancelReserved(int ID)
+    public bool AddRoomService(int serviceId)
     {
-        if (this.ID != ID || Status != RoomStatus.Reserved)
-            return;
+        if (status != ReservationStatus.CheckedIn)
+        { 
+            return false;
+        }
 
-        Status = RoomStatus.Available;
+        if (!room.SupportRoomService())
+        { 
+            return false;
+        }
+
+        decimal servicePrice = RoomServiceOrder.GetServicePrice(serviceId);
+
+        string serviceName = RoomServiceOrder.GetServiceName(serviceId);
+
+        if (servicePrice <= 0 || string.IsNullOrEmpty(serviceName))
+        {
+            return false;
+        }
+
+        if (orderCount >= orders.Length)
+        { 
+            return false;
+        }
+
+        RoomServiceOrder order = new RoomServiceOrder(serviceName, servicePrice);
+
+        orders[orderCount] = order;
+        orderCount++;
+
+        roomServiceTotal += servicePrice;
+
+        return true;
     }
+
+    public RoomServiceOrder[] GetOrders()
+    {
+        RoomServiceOrder[] result = new RoomServiceOrder[orderCount];
+
+        for (int i = 0; i < orderCount; i++)
+        {
+            result[i] = orders[i];
+        }
+
+        return result;
+    }
+
+    public bool CancelReserved()
+    {
+        if (status != ReservationStatus.Reserved)
+        {
+            return false;
+                ;
+        }
+
+        status = ReservationStatus.Cancelled;
+        return true;
+    }
+
+    #region Get Methods
+    public int GetId() => id;
+    public bool GetStatus() => status == ReservationStatus.CheckedIn;
+    public ReservationStatus GetReservationStatus() => status;
+    public DateTime GetDateIn() => dateIn;
+    public DateTime GetDateOut() => dateOut;
+    public int GetLengthOfStay(DateTime dateIn, DateTime dateOut) => (dateOut - dateIn).Days;
+    public Room GetRoom() => room;
+    public Guest GetGuest() => guest;
+    public decimal GetRoomServiceTotal() => roomServiceTotal;
+    #endregion
 }

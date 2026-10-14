@@ -7,7 +7,8 @@ namespace LatihanOOP.Services;
 public class Hotel
 {
     private Room[] _rooms = Array.Empty<Room>();
-    private readonly List<Reservation> _reservations = new();
+    private Reservation[] _reservations = new Reservation[100];
+    private int reservationCount;
 
     public int TotalRooms => _rooms.Length;
 
@@ -25,74 +26,68 @@ public class Hotel
 
     public void DisplayRooms()
     {
-        Console.WriteLine("\n========== DAFTAR KAMAR ==========");
+        Console.WriteLine("\n========== ROOM LIST ==========");
 
         foreach (Room room in _rooms)
         {
-            string status = room.IsBooked ? "Terisi" : "Kosong";
+            string status = room.IsBooked ? "Occupied" : "Available";
 
             Console.WriteLine(
-                $"No: {room.No} | Lantai: {room.Floor} | " +
-                $"Tipe: {room.GetType().Name} | " +
-                $"Tarif: Rp{room.Price:N0} | Status: {status}");
+                $"No: {room.No} | Floor: {room.Floor} | " +
+                $"Type: {room.GetType().Name} | " +
+                $"Charge: Rp{room.Price:N0} | Status: {status}");
         }
-    }
-
-    public Room? FindAvailableRoom(
-        DateTime dateIn, DateTime dateOut, string roomType)
-    {
-        return _rooms.FirstOrDefault(room =>
-            room.GetType().Name.Equals(
-                roomType, StringComparison.OrdinalIgnoreCase)
-            && !_reservations.Any(reservation =>
-                reservation.Room.No == room.No
-                && (reservation.Status == RoomStatus.Reserved
-                    || reservation.Status == RoomStatus.Occupied)
-                && dateIn.Date < reservation.DateOut
-                && dateOut.Date > reservation.DateIn));
     }
 
     public Reservation? CreateReservation(
         DateTime dateIn, int lengthOfStay,
         Guest guest, string roomType)
     {
-        if (lengthOfStay < 1 || lengthOfStay > 14)
+        if (!Reservation.ValidateLengthOfStay(lengthOfStay))
         {
-            Console.WriteLine("Lama menginap harus 1-14 malam.");
+            Console.WriteLine(
+                "Length of stay must be between 1 and 14 nights.");
             return null;
         }
 
         if (dateIn.Date < DateTime.Today)
         {
             Console.WriteLine(
-                $"Booking gagal. Tanggal check-in minimal hari ini ({DateTime.Today:dd-MM-yyyy}).");
+                $"Booking failed. Check-in date cannot be before today ({DateTime.Today:dd-MM-yyyy}).");
 
             return null;
         }
 
         DateTime dateOut = dateIn.Date.AddDays(lengthOfStay);
-        Room? room = FindAvailableRoom(dateIn, dateOut, roomType);
+        Room? room = Reservation.FindAvailableRoom(
+            _rooms,
+            _reservations,
+            reservationCount,
+            dateIn,
+            dateOut,
+            roomType);
 
         if (room == null)
         {
-            Console.WriteLine("Kamar tidak tersedia pada tanggal tersebut.");
+            Console.WriteLine("No room is available for the selected dates and room type.");
             return null;
         }
 
         Reservation reservation =
             new Reservation(dateIn, lengthOfStay, guest, room);
 
-        _reservations.Add(reservation);
+        _reservations[reservationCount] = reservation;
+        reservationCount++;
 
-        Console.WriteLine($"Reservasi berhasil. ID: {reservation.ID}");
-        Console.WriteLine($"Nomor kamar: {room.No}");
+        Console.WriteLine($"Booking successful. Reservation ID: {reservation.GetId()}");
+        Console.WriteLine($"Room number: {room.No}");
 
         return reservation;
     }
 
     public Reservation? FindReservation(int id)
     {
-        return _reservations.FirstOrDefault(item => item.ID == id);
+        return _reservations.FirstOrDefault(item => item.GetId() == id);
     }
 
     public float GetRoomPercentage()
@@ -107,13 +102,25 @@ public class Hotel
 
     public void DisplayReservations()
     {
-        foreach (Reservation reservation in _reservations)
+        Console.WriteLine("\n========== RESERVATION LIST ==========");
+
+        if (reservationCount == 0)
         {
+            Console.WriteLine("No reservations found.");
+            return;
+        }
+
+        for (int i = 0; i < reservationCount; i++)
+        {
+            Reservation reservation = _reservations[i];
+
             Console.WriteLine(
-                $"ID: {reservation.ID} | " +
-                $"Tamu: {reservation.Guest.Name} | " +
-                $"Kamar: {reservation.Room.No} | " +
-                $"Status: {reservation.Status}");
+                $"ID: {reservation.GetId()} | " +
+                $"Guest: {reservation.GetGuest().Name} | " +
+                $"Room: {reservation.GetRoom().No} | " +
+                $"Check-in: {reservation.GetDateIn():dd-MM-yyyy} | " +
+                $"Check-out: {reservation.GetDateOut():dd-MM-yyyy} | " +
+                $"Status: {reservation.GetReservationStatus()}");
         }
     }
 }

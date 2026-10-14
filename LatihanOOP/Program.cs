@@ -21,39 +21,51 @@ public class Program
 
             if (!int.TryParse(Console.ReadLine(), out int choice))
             {
-                Console.WriteLine("Pilihan tidak valid.");
+                Console.WriteLine("Invalid menu choice.");
                 continue;
             }
 
             switch (choice)
             {
                 case 1:
+                    Console.Clear();
                     _hotel.DisplayRooms();
                     break;
 
                 case 2:
+                    Console.Clear();
                     Booking();
                     break;
 
                 case 3:
+                    Console.Clear();
                     CheckIn();
                     break;
 
                 case 4:
+                    Console.Clear();
                     RoomService();
                     break;
 
                 case 5:
+                    Console.Clear();
                     CheckOut();
                     break;
 
                 case 6:
+                    Console.Clear();
                     _hotel.DisplayReservations();
                     break;
 
                 case 7:
+                    Console.Clear();
                     Console.WriteLine(
-                        $"Persentase hunian: {_hotel.GetRoomPercentage():N2}%");
+                        $"Occupancy rate: {_hotel.GetRoomPercentage():N2}%");
+                    break;
+
+                case 8:
+                    Console.Clear();
+                    CancelBooking();
                     break;
 
                 case 0:
@@ -61,7 +73,7 @@ public class Program
                     break;
 
                 default:
-                    Console.WriteLine("Menu tidak tersedia.");
+                    Console.WriteLine("Menu not available.");
                     break;
             }
         }
@@ -69,20 +81,20 @@ public class Program
 
     private static void Booking()
     {
-        Console.Write("Nama tamu: ");
+        Console.Write("Guest name: ");
         string name = Console.ReadLine() ?? "";
 
-        Console.Write("Nomor telepon: ");
+        Console.Write("Phone number: ");
         string phone = Console.ReadLine() ?? "";
 
-        Console.Write("Apakah member? (y/n): ");
+        Console.Write("Is member? (y/n): ");
         bool isMember = string.Equals(
             Console.ReadLine(), "y", StringComparison.OrdinalIgnoreCase);
 
-        Console.Write("Tipe kamar (Standard/Deluxe/Suite): ");
+        Console.Write("Room type (Standard/Deluxe/Suite): ");
         string roomType = Console.ReadLine() ?? "";
 
-        Console.Write("Tanggal check-in (dd-MM-yyyy): ");
+        Console.Write("Check-in date (dd-MM-yyyy): ");
         string? inputTanggal = Console.ReadLine();
 
         if (!DateTime.TryParseExact(
@@ -93,7 +105,7 @@ public class Program
                 out DateTime dateIn))
         {
             Console.WriteLine(
-                "Format tanggal salah! Gunakan format dd-MM-yyyy, contoh: 15-10-2026.");
+                "Invalid date format. Use dd-MM-yyyy. example: 15-10-2026.");
             return;
         }
 
@@ -101,16 +113,16 @@ public class Program
         if (dateIn.Date < DateTime.Today)
         {
             Console.WriteLine(
-                $"Tanggal check-in tidak boleh sebelum hari ini ({DateTime.Today:dd-MM-yyyy}).");
+                $"Check-in date cannot be before today. ({DateTime.Today:dd-MM-yyyy}).");
             return;
         }
 
-        Console.Write("Lama menginap (1-14 malam): ");
+        Console.Write("Length of stay (1-14): ");
 
         if (!int.TryParse(Console.ReadLine(), out int nights)
             || nights < 1 || nights > 14)
         {
-            Console.WriteLine("Lama menginap harus antara 1 sampai 14 malam.");
+            Console.WriteLine("Length of stay must be between 1 and 14 nights.");
             return;
         }
 
@@ -127,56 +139,72 @@ public class Program
 
     private static void CheckIn()
     {
-        Console.Write("ID reservasi: ");
+        Console.Write("Reservation ID: ");
         if (!int.TryParse(Console.ReadLine(), out int id))
+        {
+            Console.WriteLine("Invalid reservation ID.");
             return;
+        }
 
         Reservation? reservation = _hotel.FindReservation(id);
 
         if (reservation != null && reservation.CheckIn())
-            Console.WriteLine("Check-in berhasil.");
+            Console.WriteLine("Check-in successful.");
         else
-            Console.WriteLine("Check-in gagal. Periksa ID, tanggal, dan status.");
+            Console.WriteLine(
+                "Check-in failed. Check the ID, date, and reservation status.");
     }
 
     private static void RoomService()
     {
-        Console.Write("ID reservasi: ");
+        Console.Write("Reservation ID: ");
         if (!int.TryParse(Console.ReadLine(), out int id))
+        {
+            Console.WriteLine("Invalid reservation ID.");
             return;
+        }
 
         Reservation? reservation = _hotel.FindReservation(id);
 
         if (reservation == null)
         {
-            Console.WriteLine("Reservasi tidak ditemukan.");
+            Console.WriteLine("Reservation not found.");
             return;
         }
 
         _view.DisplayRoomServiceMenu();
-        Console.Write("Pilih pesanan (1-3): ");
+        Console.Write("Choose service (1-3): ");
 
-        if (!int.TryParse(Console.ReadLine(), out int serviceId)
-            || !reservation.AddRoomService(serviceId))
+        if (!int.TryParse(Console.ReadLine(), out int serviceId))
         {
-            Console.WriteLine("Pesanan ditolak.");
+            Console.WriteLine("Invalid service selection.");
             return;
         }
 
-        Console.WriteLine("Pesanan berhasil dicatat.");
+        if (!reservation.AddRoomService(serviceId))
+        {
+            Console.WriteLine(
+                "Order rejected. Check the reservation status, room type, and service selection.");
+            return;
+        }
+
+        Console.WriteLine("Room service order recorded successfully.");
     }
 
     private static void CheckOut()
     {
-        Console.Write("ID reservasi: ");
+        Console.Write("Reservation ID: ");
         if (!int.TryParse(Console.ReadLine(), out int id))
+        {
+            Console.WriteLine("Invalid reservation ID.");
             return;
+        }
 
         Reservation? reservation = _hotel.FindReservation(id);
 
         if (reservation == null)
         {
-            Console.WriteLine("Reservasi tidak ditemukan.");
+            Console.WriteLine("Reservation not found.");
             return;
         }
 
@@ -184,19 +212,67 @@ public class Program
 
         if (invoice == null)
         {
-            Console.WriteLine("Check-out gagal. Tamu belum check-in.");
+            Console.WriteLine(
+                "Check-out failed. The guest must be checked in.");
             return;
         }
 
         invoice.PrintDetails(reservation);
 
-        Console.Write("Uang pembayaran: Rp");
-        if (!decimal.TryParse(Console.ReadLine(), out decimal paidAmount))
+        while (true)
         {
-            Console.WriteLine("Nominal pembayaran tidak valid.");
+            Console.Write("Payment amount: Rp");
+
+            if (!decimal.TryParse(Console.ReadLine(), out decimal paidAmount) || paidAmount < 0)
+            {
+                Console.WriteLine("Invalid payment amount.");
+                continue;
+            }
+
+            if (!invoice.Payment(paidAmount))
+            {
+                continue;
+            }
+
+            if (reservation.CompleteCheckOut())
+            {
+                Console.WriteLine("Check-out completed successfully.");
+            }
+            else
+            {
+                Console.WriteLine(
+                    "Payment succeeded, but check-out status could not be updated.");
+            }
+
+            break;
+        }
+    }
+    private static void CancelBooking()
+    {
+        Console.Write("Reservation ID: ");
+
+        if (!int.TryParse(Console.ReadLine(), out int id))
+        {
+            Console.WriteLine("Invalid reservation ID.");
             return;
         }
 
-        invoice.Payment(paidAmount);
+        Reservation? reservation = _hotel.FindReservation(id);
+
+        if (reservation == null)
+        {
+            Console.WriteLine("Reservation not found.");
+            return;
+        }
+
+        if (reservation.CancelReserved())
+        {
+            Console.WriteLine("Booking cancelled successfully.");
+        }
+        else
+        {
+            Console.WriteLine(
+                "Cancellation failed. Only reserved bookings can be cancelled.");
+        }
     }
 }

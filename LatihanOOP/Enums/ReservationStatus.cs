@@ -1,8 +1,9 @@
 ﻿namespace LatihanOOP.Enums;
 
-public enum InvoiceStatus
+public enum ReservationStatus
 {
-    Paid = 1,
-    Pending = 2,
-    Failed = 3
+    Reserved = 1,
+    CheckedIn = 2,
+    CheckedOut = 3,
+    Cancelled = 4
 }

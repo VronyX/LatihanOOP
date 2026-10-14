@@ -1,12 +1,12 @@
 ﻿namespace LatihanOOP.Services;
 
-public class RoomServiceOrder
+public class RoomService
 {
     public string Description { get; set; }
     public decimal Amount { get; set; }
     public DateTime OrderDate { get; set; }
 
-    public RoomServiceOrder(string description, decimal amount)
+    public RoomService(string description, decimal amount)
     {
         Description = description;
         Amount = amount;
