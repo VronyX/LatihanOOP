@@ -1,9 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿namespace LatihanOOP2.Interfaces;
 
-namespace LatihanOOP2.Interfaces;
-
-internal interface IRoomService
+public interface IRoomService
 {
+    bool OrderRoomService(string menu, int price);
+    int TotalRoomService();
 }
