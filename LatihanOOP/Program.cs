@@ -1,6 +1,7 @@
 ﻿using LatihanOOP.Models;
 using LatihanOOP.Services;
 using LatihanOOP.Views;
+using System.Threading.Channels;
 
 namespace LatihanOOP;
 
@@ -96,6 +97,8 @@ public class Program
 
         Console.Write("Check-in date (dd-MM-yyyy): ");
         string? inputTanggal = Console.ReadLine();
+
+        ValidateBooking(name, phone, roomType, inputTanggal);
 
         if (!DateTime.TryParseExact(
                 inputTanggal,
@@ -278,6 +281,26 @@ public class Program
         {
             Console.WriteLine(
                 "Cancellation failed. Only reserved bookings can be cancelled.");
+        }
+    }
+
+    private static void ValidateBooking(string name, string phone, string roomType, string inputTanggal)
+    {
+        if (name.IsWhiteSpace())
+        {
+            Console.WriteLine("Name cannot be Empty");
+        }
+        if (phone.IsWhiteSpace())
+        {
+            Console.WriteLine("Phone cannot be Empty");
+        }
+        if (roomType.IsWhiteSpace())
+        {
+            Console.WriteLine("Room Type cannot be Empty");
+        }
+        if (!string.IsNullOrEmpty(inputTanggal))
+        {
+            Console.WriteLine("Date cannot be Empty");
         }
     }
 }
