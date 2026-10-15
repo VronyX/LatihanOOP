@@ -21,6 +21,10 @@ public abstract class Room
 
     protected virtual int NightlyRate(int day)
     {
+        if (day == 5 || day == 6)
+        {
+            return NightlyRateValue + (NightlyRateValue * 20 / 100);
+        }
         return NightlyRateValue;
     }
 
@@ -50,13 +54,14 @@ public abstract class Room
         return false;
     }
 
-    public void Vacate()
+    public virtual void Vacate()
     {
         Status = "Available";
     }
 
     public virtual void Info()
     {
-        Console.WriteLine($"Room: {RoomNumber}, Floor: {Floor}, Status: {Status}");
+        string statusText = (Status == "Available") ? "Kosong" : "Terisi";
+        Console.WriteLine($"Kamar {RoomNumber} | Lantai {Floor} | {GetType().Name} | Tarif {NightlyRateValue:N0}/malam | {statusText}");
     }
 }

@@ -4,7 +4,7 @@ public class Hotel
 {
     private Room[] rooms;
     private Reservation[] reservations;
-    private int reservationCount { get; set; }
+    private int reservationCount;
 
     public Hotel()
     {
@@ -23,15 +23,33 @@ public class Hotel
             new Suite("303", 3, 1200000, "Available")
         };
 
-        reservations = new Reservation[0];
+        reservations = new Reservation[50];
         reservationCount = 0;
     }
 
     public Room? FindAvailableRoom(string type)
     {
-        foreach (var room in rooms)
+        foreach (Room room in rooms)
         {
-            if (room.Status == "Available" && room.GetType().Name.Equals(type, StringComparison.OrdinalIgnoreCase))
+            if (room.Status != "Available")
+            {
+                continue;
+            }
+            if (!room.GetType().Name.Equals(type, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            bool sudahDipesan = false;
+            for (int i = 0; i < reservationCount; i++)
+            {
+                if (reservations[i].Status == "Reserved" && reservations[i].Room == room)
+                {
+                    sudahDipesan = true;
+                }
+            }
+
+            if (!sudahDipesan)
             {
                 return room;
             }
@@ -42,12 +60,26 @@ public class Hotel
 
     public bool CreateReservation(Reservation res)
     {
+        if (res.Nights < 1 || res.Nights > 14)
+        {
+            return false;
+        }
+
         if (res.Room.Status == "Occupied")
         {
             return false;
         }
 
-        reservations = reservations.Append(res).ToArray();
+        for (int i = 0; i < reservationCount; i++)
+        {
+            if (reservations[i].Status == "Reserved" && reservations[i].Room == res.Room)
+            {
+                return false;
+            }
+        }
+
+        Array.Resize(ref reservations, reservationCount + 1);
+        reservations[reservationCount] = res;
         reservationCount++;
 
         return true;
@@ -61,9 +93,9 @@ public class Hotel
         }
 
         int occupiedRooms = 0;
-        foreach (var room in rooms)
+        foreach (Room room in rooms)
         {
-            if(room.Status == "Occupied")
+            if (room.Status == "Occupied")
             {
                 occupiedRooms++;
             }
@@ -74,6 +106,19 @@ public class Hotel
 
     public void PrintRooms()
     {
+        Console.WriteLine("\n========== DAFTAR KAMAR ==========");
 
+        foreach (Room room in rooms)
+        {
+            room.Info();
+
+            for (int i = 0; i < reservationCount; i++)
+            {
+                if (reservations[i].Status == "Reserved" && reservations[i].Room == room)
+                {
+                    Console.WriteLine($"         >> Dipesan oleh {reservations[i].Guest.Name}, belum check-in");
+                }
+            }
+        }
     }
 }

@@ -13,17 +13,17 @@ public class Deluxe : Room, IRoomService
 
     public override int ExtraChargePerNight()
     {
-        return 50000;
+        return 100000;
     }
 
     public bool OrderRoomService(string menu, int price)
     {
-        if (price > 0)
+        if (string.IsNullOrWhiteSpace(menu) || price <= 0)
         {
-            totalRoomService += price;
-            return true;
+            return false;
         }
-        return false;
+        totalRoomService += price;
+        return true;
     }
 
     public int TotalRoomService()
@@ -35,5 +35,11 @@ public class Deluxe : Room, IRoomService
     {
         base.Info();
         Console.WriteLine($"Type: Deluxe, Room Service Total: {totalRoomService}");
+    }
+
+    public override void Vacate()
+    {
+        base.Vacate();
+        totalRoomService = 0;
     }
 }
