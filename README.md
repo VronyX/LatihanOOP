@@ -1,4 +1,5 @@
-<img width="970" height="657" alt="WhatsApp Image 2026-10-15 at 08 21 35" src="https://github.com/user-attachments/assets/1113468f-9628-4488-84d6-8a077b2fbe68" />
+<img width="977" height="656" alt="image" src="https://github.com/user-attachments/assets/9ead5983-9fba-4dee-8ad0-97ef6423a3a0" />
+
 
 Kasus 5 - Hotel
 Hotel memiliki kamar standard, deluxe, dan suite. Tamu melakukan check-in dan check-out, lalu membayar tagihan.
