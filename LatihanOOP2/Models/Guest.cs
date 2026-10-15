@@ -14,7 +14,9 @@ public class Guest
 
     public void Info()
     {
-
+        Console.WriteLine($"Guest ID : {GuestId}");
+        Console.WriteLine($"Name     : {Name}");
+        Console.WriteLine($"Member   : {(Member ? "Yes" : "No")}");
     }
 }
     

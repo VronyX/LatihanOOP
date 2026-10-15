@@ -10,8 +10,21 @@ public class Hotel
     {
         rooms = new Room[]
         {
+            new Standard("101", 1, 500000, "Available"),
+            new Standard("102", 1, 500000, "Available"),
+            new Standard("103", 1, 500000, "Available"),
 
+            new Deluxe("201", 2, 800000, "Available"),
+            new Deluxe("202", 2, 800000, "Available"),
+            new Deluxe("203", 2, 800000, "Available"),
+
+            new Suite("301", 3, 1200000, "Available"),
+            new Suite("302", 3, 1200000, "Available"),
+            new Suite("303", 3, 1200000, "Available")
         };
+
+        reservations = new Reservation[0];
+        reservationCount = 0;
     }
 
     public Room? FindAvailableRoom(string type)
@@ -42,6 +55,11 @@ public class Hotel
 
     public int OccupancyRate()
     {
+        if (rooms.Length == 0)
+        {
+            return 0;
+        }
+
         int occupiedRooms = 0;
         foreach (var room in rooms)
         {
