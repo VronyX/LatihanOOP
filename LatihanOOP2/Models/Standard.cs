@@ -1,62 +1,18 @@
 ﻿using System;
 
-public abstract class Room
+public class Standard : Room
 {
-    public static int TotalRooms { get; set; } = 0;
-    public string RoomNumber { get; private set; }
-    public int Floor { get; set; }
-    public int NightlyRateValue { get; set; }
-    public string Status { get; private set; }
+    public Standard(string roomNumber, int floor, int nightlyRate, string status)
+        : base(roomNumber, floor, nightlyRate, status) { }
 
-    public Room(string roomNumber, int floor, int nightlyRate, string status)
+    public override int ExtraChargePerNight()
     {
-        RoomNumber = roomNumber;
-        Floor = floor;
-        NightlyRateValue = nightlyRate;
-        Status = status;
-        TotalRooms++;
+        return 0;
     }
 
-    public abstract int ExtraChargePerNight();
-
-    protected virtual int NightlyRate(int day)
+    public override void Info()
     {
-        return NightlyRateValue;
-    }
-
-    public int CalculateTotal(int nights)
-    {
-        return (NightlyRate(1) + ExtraChargePerNight()) * nights;
-    }
-
-    public int CalculateTotal(int nights, int startDay)
-    {
-        int total = 0;
-        for (int i = 0; i < nights; i++)
-        {
-            int currentDay = ((startDay + i - 1) % 7) + 1;
-            total += NightlyRate(currentDay) + ExtraChargePerNight();
-        }
-        return total;
-    }
-
-    public bool Occupy()
-    {
-        if (Status == "Available")
-        {
-            Status = "Occupied";
-            return true;
-        }
-        return false;
-    }
-
-    public void Vacate()
-    {
-        Status = "Available";
-    }
-
-    public virtual void Info()
-    {
-        Console.WriteLine($"Room: {RoomNumber}, Floor: {Floor}, Status: {Status}");
+        base.Info();
+        Console.WriteLine("Type: Standard");
     }
 }
