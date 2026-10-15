@@ -66,16 +66,14 @@ public class Reservation
     {
         for (int i = 0; i < reservationCount; i++)
         {
-            Reservation reservation =
-                reservations[i];
+            Reservation reservation = reservations[i];
 
             if (reservation.room.No != room.No)
+            {
                 continue;
+            }
 
-            if (reservation.status ==
-                    ReservationStatus.Cancelled ||
-                reservation.status ==
-                    ReservationStatus.CheckedOut)
+            if (reservation.status is ReservationStatus.Cancelled or ReservationStatus.CheckedOut)
             {
                 continue;
             }
@@ -103,7 +101,9 @@ public class Reservation
         }
 
         if (DateTime.Today < dateIn || DateTime.Today >= dateOut)
+        {
             return false;
+        }
 
         room.SetIsBooked(true);
         status = ReservationStatus.CheckedIn;
@@ -187,7 +187,6 @@ public class Reservation
         if (status != ReservationStatus.Reserved)
         {
             return false;
-                ;
         }
 
         status = ReservationStatus.Cancelled;
@@ -196,7 +195,6 @@ public class Reservation
 
     #region Get Methods
     public int GetId() => id;
-    public bool GetStatus() => status == ReservationStatus.CheckedIn;
     public ReservationStatus GetReservationStatus() => status;
     public DateTime GetDateIn() => dateIn;
     public DateTime GetDateOut() => dateOut;
