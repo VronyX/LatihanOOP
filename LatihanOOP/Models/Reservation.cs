@@ -1,4 +1,5 @@
-﻿using LatihanOOP.Enums;
+﻿
+using LatihanOOP.Enums;
 using LatihanOOP.Models.Rooms;
 using LatihanOOP.Services;
 
@@ -14,22 +15,25 @@ public class Reservation
     private ReservationStatus status;
     private Guest guest;
     private Room room;
+
     private decimal roomServiceTotal;
     private RoomServiceOrder[] orders = new RoomServiceOrder[50];
     private int orderCount;
 
-
-    public Reservation(DateTime dateIn, int lengthOfStay, Guest guest, Room room)
+    public Reservation(
+        DateTime dateIn,
+        int lengthOfStay,
+        Guest guest,
+        Room room)
     {
-        this.id = nextId++;
+        id = nextId++;
         this.dateIn = dateIn.Date;
-        this.dateOut = dateIn.Date.AddDays(lengthOfStay);
+        dateOut = dateIn.Date.AddDays(lengthOfStay);
         this.guest = guest;
         this.room = room;
-        this.status = ReservationStatus.Reserved;
-
-        this.roomServiceTotal = 0;
-        this.orderCount = 0;
+        status = ReservationStatus.Reserved;
+        roomServiceTotal = 0m;
+        orderCount = 0;
     }
 
     public static bool ValidateLengthOfStay(int lengthOfStay)
@@ -37,23 +41,29 @@ public class Reservation
         return lengthOfStay >= 1 && lengthOfStay <= 14;
     }
 
-    public static Room? FindAvailableRoom(Room[] rooms, Reservation[] reservations, int reservationCount, DateTime dateIn, DateTime dateOut, string roomType)
+    public static Room? FindAvailableRoom(
+        Room[] rooms,
+        Reservation[] reservations,
+        int reservationCount,
+        DateTime dateIn,
+        DateTime dateOut,
+        string roomType)
     {
         foreach (Room room in rooms)
         {
             if (!room.GetType().Name.Equals(
-                    roomType,
-                    StringComparison.OrdinalIgnoreCase))
+                roomType,
+                StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
 
             if (IsRoomAvailable(
-                    room,
-                    reservations,
-                    reservationCount,
-                    dateIn,
-                    dateOut))
+                room,
+                reservations,
+                reservationCount,
+                dateIn,
+                dateOut))
             {
                 return room;
             }
@@ -62,28 +72,32 @@ public class Reservation
         return null;
     }
 
-    private static bool IsRoomAvailable(Room room, Reservation[] reservations, int reservationCount, DateTime dateIn, DateTime dateOut)
+    private static bool IsRoomAvailable(
+        Room room,
+        Reservation[] reservations,
+        int reservationCount,
+        DateTime dateIn,
+        DateTime dateOut)
     {
         for (int i = 0; i < reservationCount; i++)
         {
             Reservation reservation = reservations[i];
 
             if (reservation.room.No != room.No)
+                continue;
+
+            if (reservation.status is ReservationStatus.Cancelled
+                or ReservationStatus.CheckedOut)
             {
                 continue;
             }
 
-            if (reservation.status is ReservationStatus.Cancelled or ReservationStatus.CheckedOut)
-            {
-                continue;
-            }
-
-            bool dateOverlap = dateIn.Date < reservation.dateOut.Date && dateOut.Date > reservation.dateIn.Date;
+            bool dateOverlap =
+                dateIn.Date < reservation.dateOut.Date &&
+                dateOut.Date > reservation.dateIn.Date;
 
             if (dateOverlap)
-            {
                 return false;
-            }
         }
 
         return true;
@@ -92,18 +106,13 @@ public class Reservation
     public bool CheckIn()
     {
         if (status != ReservationStatus.Reserved)
-        {
             return false;
-        }
+
         if (room.IsBooked)
-        {
             return false;
-        }
 
         if (DateTime.Today < dateIn || DateTime.Today >= dateOut)
-        {
             return false;
-        }
 
         room.SetIsBooked(true);
         status = ReservationStatus.CheckedIn;
@@ -114,9 +123,7 @@ public class Reservation
     public Invoice? CheckOut()
     {
         if (status != ReservationStatus.CheckedIn)
-        {
             return null;
-        }
 
         return new Invoice(this);
     }
@@ -124,9 +131,7 @@ public class Reservation
     public bool CompleteCheckOut()
     {
         if (status != ReservationStatus.CheckedIn)
-        {
             return false;
-        }
 
         room.SetIsBooked(false);
         status = ReservationStatus.CheckedOut;
@@ -137,30 +142,28 @@ public class Reservation
     public bool AddRoomService(int serviceId)
     {
         if (status != ReservationStatus.CheckedIn)
-        { 
             return false;
-        }
 
         if (!room.SupportRoomService())
-        { 
             return false;
-        }
 
-        decimal servicePrice = RoomServiceOrder.GetServicePrice(serviceId);
+        if (room is not IRoomServiceSupport service)
+            return false;
 
-        string serviceName = RoomServiceOrder.GetServiceName(serviceId);
+        decimal servicePrice = service.GetServicePrice(serviceId);
+        string serviceName = service.GetServiceName(serviceId);
 
-        if (servicePrice <= 0 || string.IsNullOrEmpty(serviceName))
+        if (servicePrice <= 0 ||
+            string.IsNullOrWhiteSpace(serviceName))
         {
             return false;
         }
 
         if (orderCount >= orders.Length)
-        { 
             return false;
-        }
 
-        RoomServiceOrder order = new RoomServiceOrder(serviceName, servicePrice);
+        RoomServiceOrder order =
+            new RoomServiceOrder(serviceName, servicePrice);
 
         orders[orderCount] = order;
         orderCount++;
@@ -172,7 +175,8 @@ public class Reservation
 
     public RoomServiceOrder[] GetOrders()
     {
-        RoomServiceOrder[] result = new RoomServiceOrder[orderCount];
+        RoomServiceOrder[] result =
+            new RoomServiceOrder[orderCount];
 
         for (int i = 0; i < orderCount; i++)
         {
@@ -185,22 +189,27 @@ public class Reservation
     public bool CancelReserved()
     {
         if (status != ReservationStatus.Reserved)
-        {
             return false;
-        }
 
         status = ReservationStatus.Cancelled;
+
         return true;
     }
 
-    #region Get Methods
     public int GetId() => id;
+
     public ReservationStatus GetReservationStatus() => status;
+
     public DateTime GetDateIn() => dateIn;
+
     public DateTime GetDateOut() => dateOut;
-    public int GetLengthOfStay(DateTime dateIn, DateTime dateOut) => (dateOut - dateIn).Days;
+
+    public int GetLengthOfStay(DateTime dateIn, DateTime dateOut)
+        => (dateOut - dateIn).Days;
+
     public Room GetRoom() => room;
+
     public Guest GetGuest() => guest;
+
     public decimal GetRoomServiceTotal() => roomServiceTotal;
-    #endregion
 }

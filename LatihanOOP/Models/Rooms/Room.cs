@@ -2,39 +2,35 @@
 
 public abstract class Room
 {
-    public int No { get; }
-    public int Floor { get; }
-    public decimal Price { get; private set; }
+    public int No { get; protected set; }
+    public int Floor { get; protected set; }
     public bool IsBooked { get; private set; }
+    public decimal Price { get; protected set; }
 
     protected Room(int no, int floor, decimal price)
     {
-        if (price <= 0)
-            throw new ArgumentException("Price rate must be greater than 0.");
-
         No = no;
         Floor = floor;
         Price = price;
         IsBooked = false;
     }
 
-    // Mengubah status kamar melalui method.
-    public void SetIsBooked(bool status)
-    {
-        IsBooked = status;
-    }
-
-    // Tarif akhir pekan naik 20%.
     public virtual decimal GetNightlyPrice(DateTime date)
     {
-        bool weekend = date.DayOfWeek is DayOfWeek.Friday
+        bool isWeekend = date.DayOfWeek is DayOfWeek.Friday
             or DayOfWeek.Saturday;
 
-        return weekend ? Price * 1.20m : Price;
+        return isWeekend ? Price * 1.2m : Price;
     }
 
     public bool GetStatus() => IsBooked;
 
-    public abstract bool SupportRoomService();
+    public virtual bool SupportRoomService() => false;
+
     public abstract decimal GetAdditionalChargePerNight();
+
+    public void SetIsBooked(bool isCheckIn)
+    {
+        IsBooked = isCheckIn;
+    }
 }

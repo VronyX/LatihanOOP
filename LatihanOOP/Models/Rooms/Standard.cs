@@ -7,7 +7,8 @@ public class Standard : Room
     {
     }
 
-    public override bool SupportRoomService() => false;
-
-    public override decimal GetAdditionalChargePerNight() => 0m;
+    public override decimal GetAdditionalChargePerNight()
+    {
+        return 0m;
+    }
 }

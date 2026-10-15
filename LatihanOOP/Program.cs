@@ -1,7 +1,7 @@
 ﻿using LatihanOOP.Models;
 using LatihanOOP.Services;
 using LatihanOOP.Views;
-using System.Threading.Channels;
+using System.Globalization;
 
 namespace LatihanOOP;
 
@@ -89,30 +89,41 @@ public class Program
         string phone = Console.ReadLine() ?? "";
 
         Console.Write("Is member? (y/n): ");
-        bool isMember = string.Equals(
-            Console.ReadLine(), "y", StringComparison.OrdinalIgnoreCase);
+        string memberInput = Console.ReadLine() ?? "";
+
+        if (!memberInput.Equals("y", StringComparison.OrdinalIgnoreCase)
+            && !memberInput.Equals("n", StringComparison.OrdinalIgnoreCase))
+        {
+            Console.WriteLine("Please enter y or n.");
+            return;
+        }
+
+        bool isMember = memberInput.Equals(
+            "y", StringComparison.OrdinalIgnoreCase);
 
         Console.Write("Room type (Standard/Deluxe/Suite): ");
         string roomType = Console.ReadLine() ?? "";
 
         Console.Write("Check-in date (dd-MM-yyyy): ");
-        string? inputTanggal = Console.ReadLine();
+        string inputTanggal = Console.ReadLine() ?? "";
 
-        ValidateBooking(name, phone, roomType, inputTanggal);
+        if (!ValidateBooking(name, phone, roomType, inputTanggal))
+        {
+            return;
+        }
 
         if (!DateTime.TryParseExact(
                 inputTanggal,
                 "dd-MM-yyyy",
-                System.Globalization.CultureInfo.InvariantCulture,
-                System.Globalization.DateTimeStyles.None,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.None,
                 out DateTime dateIn))
         {
             Console.WriteLine(
-                "Invalid date format. Use dd-MM-yyyy. example: 15-10-2026.");
+                "Invalid date format. Use dd-MM-yyyy, example: 15-10-2026.");
             return;
         }
 
-        // Tanggal check-in tidak boleh sebelum hari ini.
         if (dateIn.Date < DateTime.Today)
         {
             Console.WriteLine(
@@ -123,16 +134,20 @@ public class Program
         Console.Write("Length of stay (1-14): ");
 
         if (!int.TryParse(Console.ReadLine(), out int nights)
-            || nights < 1 || nights > 14)
+            || nights < 1
+            || nights > 14)
         {
-            Console.WriteLine("Length of stay must be between 1 and 14 nights.");
+            Console.WriteLine(
+                "Length of stay must be between 1 and 14 nights.");
             return;
         }
 
         try
         {
             Guest guest = new Guest(name, phone, isMember);
-            _hotel.CreateReservation(dateIn, nights, guest, roomType);
+
+            _hotel.CreateReservation(
+                dateIn, nights, guest, roomType);
         }
         catch (ArgumentException ex)
         {
@@ -143,6 +158,7 @@ public class Program
     private static void CheckIn()
     {
         Console.Write("Reservation ID: ");
+
         if (!int.TryParse(Console.ReadLine(), out int id))
         {
             Console.WriteLine("Invalid reservation ID.");
@@ -150,22 +166,28 @@ public class Program
         }
 
         Reservation? reservation = _hotel.FindReservation(id);
+
         if (reservation == null)
         {
             Console.WriteLine("Reservation not found.");
             return;
         }
 
-        if (reservation != null && reservation.CheckIn())
+        if (reservation.CheckIn())
+        {
             Console.WriteLine("Check-in successful.");
+        }
         else
+        {
             Console.WriteLine(
                 "Check-in failed. Check the ID, date, and reservation status.");
+        }
     }
 
     private static void RoomService()
     {
         Console.Write("Reservation ID: ");
+
         if (!int.TryParse(Console.ReadLine(), out int id))
         {
             Console.WriteLine("Invalid reservation ID.");
@@ -181,9 +203,12 @@ public class Program
         }
 
         _view.DisplayRoomServiceMenu();
+
         Console.Write("Choose service (1-3): ");
 
-        if (!int.TryParse(Console.ReadLine(), out int serviceId))
+        if (!int.TryParse(Console.ReadLine(), out int serviceId)
+            || serviceId < 1
+            || serviceId > 3)
         {
             Console.WriteLine("Invalid service selection.");
             return;
@@ -202,6 +227,7 @@ public class Program
     private static void CheckOut()
     {
         Console.Write("Reservation ID: ");
+
         if (!int.TryParse(Console.ReadLine(), out int id))
         {
             Console.WriteLine("Invalid reservation ID.");
@@ -231,7 +257,10 @@ public class Program
         {
             Console.Write("Payment amount: Rp");
 
-            if (!decimal.TryParse(Console.ReadLine(), out decimal paidAmount) || paidAmount < 0)
+            if (!decimal.TryParse(
+                    Console.ReadLine(),
+                    out decimal paidAmount)
+                || paidAmount < 0)
             {
                 Console.WriteLine("Invalid payment amount.");
                 continue;
@@ -244,7 +273,8 @@ public class Program
 
             if (reservation.CompleteCheckOut())
             {
-                Console.WriteLine("Check-out completed successfully.");
+                Console.WriteLine(
+                    "Check-out completed successfully.");
             }
             else
             {
@@ -255,6 +285,7 @@ public class Program
             break;
         }
     }
+
     private static void CancelBooking()
     {
         Console.Write("Reservation ID: ");
@@ -284,23 +315,48 @@ public class Program
         }
     }
 
-    private static void ValidateBooking(string name, string phone, string roomType, string inputTanggal)
+    private static bool ValidateBooking(
+        string name,
+        string phone,
+        string roomType,
+        string inputTanggal)
     {
-        if (name.IsWhiteSpace())
+        if (string.IsNullOrWhiteSpace(name))
         {
-            Console.WriteLine("Name cannot be Empty");
+            Console.WriteLine("Name cannot be empty.");
+            return false;
         }
-        if (phone.IsWhiteSpace())
+
+        if (string.IsNullOrWhiteSpace(phone))
         {
-            Console.WriteLine("Phone cannot be Empty");
+            Console.WriteLine("Phone cannot be empty.");
+            return false;
         }
-        if (roomType.IsWhiteSpace())
+
+        if (string.IsNullOrWhiteSpace(roomType))
         {
-            Console.WriteLine("Room Type cannot be Empty");
+            Console.WriteLine("Room type cannot be empty.");
+            return false;
         }
-        if (!string.IsNullOrEmpty(inputTanggal))
+
+        if (string.IsNullOrWhiteSpace(inputTanggal))
         {
-            Console.WriteLine("Date cannot be Empty");
+            Console.WriteLine("Date cannot be empty.");
+            return false;
         }
+
+        if (!roomType.Equals(
+                "Standard", StringComparison.OrdinalIgnoreCase)
+            && !roomType.Equals(
+                "Deluxe", StringComparison.OrdinalIgnoreCase)
+            && !roomType.Equals(
+                "Suite", StringComparison.OrdinalIgnoreCase))
+        {
+            Console.WriteLine(
+                "Invalid room type. Choose Standard, Deluxe, or Suite.");
+            return false;
+        }
+
+        return true;
     }
 }
