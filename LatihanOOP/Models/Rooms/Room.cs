@@ -10,7 +10,7 @@ public abstract class Room
     protected Room(int no, int floor, decimal price)
     {
         if (price <= 0)
-            throw new ArgumentException("Tarif harus lebih dari 0.");
+            throw new ArgumentException("Price rate must be greater than 0.");
 
         No = no;
         Floor = floor;
