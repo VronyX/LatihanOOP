@@ -2,9 +2,9 @@
 
 public class Hotel
 {
-    private Room[] rooms = new Room[0];
-    private Reservation[] reservations = new Reservation[0];
-    private int reservationCount {  get; }
+    private Room[] rooms;
+    private Reservation[] reservations;
+    private int reservationCount { get; set; }
 
     public Hotel()
     {
@@ -14,29 +14,44 @@ public class Hotel
         };
     }
 
-    public Room FindAvailableRoom(string type)
+    public Room? FindAvailableRoom(string type)
     {
-        Room room = new Room();
+        foreach (var room in rooms)
+        {
+            if (room.Status == "Available" && room.GetType().Name.Equals(type, StringComparison.OrdinalIgnoreCase))
+            {
+                return room;
+            }
+        }
 
-        return room;
+        return null;
     }
 
     public bool CreateReservation(Reservation res)
     {
+        if (res.Room.Status == "Occupied")
+        {
+            return false;
+        }
+
+        reservations = reservations.Append(res).ToArray();
+        reservationCount++;
+
         return true;
     }
 
     public int OccupancyRate()
     {
-        int percentage = 0;
+        int occupiedRooms = 0;
         foreach (var room in rooms)
         {
             if(room.Status == "Occupied")
             {
-                percentage += 
+                occupiedRooms++;
             }
         }
-        return 0;
+
+        return (occupiedRooms * 100) / rooms.Length;
     }
 
     public void PrintRooms()
