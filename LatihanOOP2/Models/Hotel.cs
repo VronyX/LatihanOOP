@@ -1,39 +1,46 @@
-﻿using LatihanOOP2.Interfaces;
-using System;
+﻿namespace LatihanOOP2.Models;
 
-public class Suite : Room, IRoomService
+public class Hotel
 {
-    private int totalRoomService;
+    private Room[] rooms = new Room[0];
+    private Reservation[] reservations = new Reservation[0];
+    private int reservationCount {  get; }
 
-    public Suite(string roomNumber, int floor, int nightlyRate, string status)
-        : base(roomNumber, floor, nightlyRate, status)
+    public Hotel()
     {
-        totalRoomService = 0;
-    }
-
-    public override int ExtraChargePerNight()
-    {
-        return 150000;
-    }
-
-    public bool OrderRoomService(string menu, int price)
-    {
-        if (price > 0)
+        rooms = new Room[]
         {
-            totalRoomService += price;
-            return true;
+
+        };
+    }
+
+    public Room FindAvailableRoom(string type)
+    {
+        Room room = new Room();
+
+        return room;
+    }
+
+    public bool CreateReservation(Reservation res)
+    {
+        return true;
+    }
+
+    public int OccupancyRate()
+    {
+        int percentage = 0;
+        foreach (var room in rooms)
+        {
+            if(room.Status == "Occupied")
+            {
+                percentage += 
+            }
         }
-        return false;
+        return 0;
     }
 
-    public int TotalRoomService()
+    public void PrintRooms()
     {
-        return totalRoomService;
-    }
 
-    public override void Info()
-    {
-        base.Info();
-        Console.WriteLine($"Type: Suite, Room Service Total: {totalRoomService}");
     }
 }
