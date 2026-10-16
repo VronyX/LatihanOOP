@@ -9,8 +9,6 @@ namespace LatihanOOP2
     {
         static Hotel hotel = new Hotel();
         static int guestCounter = 0;
-        static Reservation[] reservations = new Reservation[50];
-        static int reservationCount = 0;
 
         static void Main(string[] args)
         {
