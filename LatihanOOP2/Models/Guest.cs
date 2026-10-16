@@ -2,21 +2,24 @@
 
 public class Guest
 {
-    public string GuestId { get; private set; }
-    public string Name { get; set; }
-    public bool Member { get; set; }
+    public string GuestId { get; }
+    public string Name { get; }
+    public bool Member { get; }
 
-    public Guest(string guestId, string name)
+    public Guest(string guestId, string name, bool member)
     {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("Nama tamu tidak boleh kosong.");
+
         GuestId = guestId;
         Name = name;
+        Member = member;
     }
 
     public void Info()
     {
-        Console.WriteLine($"Guest ID : {GuestId}");
-        Console.WriteLine($"Name     : {Name}");
-        Console.WriteLine($"Member   : {(Member ? "Yes" : "No")}");
+        Console.WriteLine($"ID Tamu : {GuestId}");
+        Console.WriteLine($"Nama    : {Name}");
+        Console.WriteLine($"Member  : {(Member ? "Ya" : "Tidak")}");
     }
 }
-    

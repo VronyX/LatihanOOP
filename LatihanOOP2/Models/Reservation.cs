@@ -1,80 +1,69 @@
-﻿using LatihanOOP2.Interfaces;
+﻿using LatihanOOP2.Exceptions;
+using LatihanOOP2.Interfaces;
 
 namespace LatihanOOP2.Models;
 
 public class Reservation
 {
-    public Guest Guest { get; private set; }
-    public Room Room { get; private set; }
+    public Guest Guest { get; }
+    public global::Room Room { get; }
+    public int Nights { get; }
+    public int StartDay { get; }
+    public string Status { get; private set; } = "Reserved";
 
-    // Lama menginap: harus 1 sampai 14 malam
-    public int Nights
+    public Reservation(Guest guest, global::Room room, int nights, int startDay)
     {
-        get;
-        set
-        {
-            if (value < 1 || value > 14)
-            {
-                Console.WriteLine("Validasi: lama menginap harus 1 sampai 14 malam.");
-            }
-            else
-            {
-                field = value;
-            }
-        }
-    }
+        if (nights < 1 || nights > 14)
+            throw new InvalidStayDurationException(
+                "Lama menginap harus antara 1 sampai 14 malam.");
 
-    public int StartDay { get; set; }
-    public string Status { get; private set; }
+        if (startDay < 1 || startDay > 7)
+            throw new ArgumentException("Hari mulai harus antara 1 sampai 7.");
 
-    public Reservation(Guest guest, Room room, int nights, int startDay)
-    {
         Guest = guest;
         Room = room;
-        Nights = nights;   
+        Nights = nights;
         StartDay = startDay;
-        Status = "Reserved";
     }
 
-    public bool CheckIn()
+    public void CheckIn()
     {
-        if (Status != "Reserved")
-        {
-            Console.WriteLine("Tidak bisa check-in: reservasi ini sudah check-in atau sudah selesai.");
-            return false;
-        }
-
-        if (!Room.Occupy())
-        {
-            Console.WriteLine("Tidak bisa check-in: kamar sedang terisi.");
-            return false;
-        }
+        if (Status != "Reserved" || !Room.Occupy())
+            throw new RoomNotAvailableException(
+                $"Kamar {Room.RoomNumber} sedang terisi atau tidak tersedia.");
 
         Status = "CheckedIn";
-        return true;
+    }
+
+    public int OrderRoomService(string menu, int price)
+    {
+        if (Status != "CheckedIn")
+            throw new InvalidOperationException(
+                "Room service hanya dapat dipesan setelah check-in.");
+
+        if (Room is not IRoomService service)
+            throw new RoomServiceNotSupportedException(
+                "Kamar Standard tidak menyediakan room service.");
+
+        service.OrderRoomService(menu, price);
+        return service.TotalRoomService();
     }
 
     public int CheckOut()
     {
         if (Status != "CheckedIn")
-        {
-            Console.WriteLine("Tamu belum check-in, tidak bisa check-out.");
-            return 0;
-        }
+            throw new InvalidOperationException(
+                "Tamu belum check-in atau sudah check-out.");
 
         PrintBill();
 
         int total = Room.CalculateTotal(Nights, StartDay);
 
         if (Room is IRoomService service)
-        {
             total += service.TotalRoomService();
-        }
 
         if (Guest.Member)
-        {
-            total = total - (total * 10 / 100);
-        }
+            total -= total * 10 / 100;
 
         Room.Vacate();
         Status = "CheckedOut";
@@ -84,67 +73,46 @@ public class Reservation
 
     public void PrintBill()
     {
-        if (Status != "CheckedIn")
+        string[] days =
         {
-            Console.WriteLine("Belum bisa mencetak tagihan (tamu belum check-in).");
-            return;
-        }
+            "Senin", "Selasa", "Rabu", "Kamis",
+            "Jumat", "Sabtu", "Minggu"
+        };
 
-        string[] dayNames = { "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu" };
+        int roomTotal = 0;
 
-        int extra = Room.ExtraChargePerNight();
-        int extraTotal = extra * Nights;
-        int roomOnly = Room.CalculateTotal(Nights, StartDay) - extraTotal;
-
-        Console.WriteLine();
-        Console.WriteLine("============== TAGIHAN ==============");
+        Console.WriteLine("\n============== TAGIHAN ==============");
         Console.WriteLine($"Tamu  : {Guest.Name}");
         Console.WriteLine($"Kamar : {Room.RoomNumber} ({Room.GetType().Name})");
-        Console.WriteLine("-------------------------------------");
 
-        // Rincian tarif kamar per malam
         for (int i = 0; i < Nights; i++)
         {
             int day = ((StartDay + i - 1) % 7) + 1;
-            int rate = Room.CalculateTotal(1, day) - extra;
+            int nightly = Room.CalculateTotal(1, day);
+            roomTotal += nightly;
 
-            string mark = "";
-            if (day == 5)
-            {
-                mark = "  (+20% malam Jumat)";
-            }
-            else if (day == 6)
-            {
-                mark = "  (+20% malam Sabtu)";
-            }
-            Console.WriteLine($"Malam {i + 1} ({dayNames[day - 1]}) : {rate:N0}{mark}");
-        }
-        Console.WriteLine($"Total kamar   : {roomOnly:N0}");
+            string note = day == 5 || day == 6
+                ? " (+20%)"
+                : "";
 
-        if (Room is Deluxe)
-        {
-            Console.WriteLine($"Sarapan       : {extraTotal:N0}  ({Nights} x {extra:N0})");
-        }
-        else if (Room is Suite)
-        {
-            Console.WriteLine($"Butler        : {extraTotal:N0}  ({Nights} x {extra:N0})");
+            Console.WriteLine(
+                $"Malam {i + 1} ({days[day - 1]}) : {nightly:N0}{note}");
         }
 
-        int roomService = 0;
+        Console.WriteLine($"Total kamar   : {roomTotal:N0}");
+        Console.WriteLine($"Biaya tambahan: {Room.ExtraChargePerNight() * Nights:N0}");
+
+        int serviceTotal = 0;
+
         if (Room is IRoomService service)
         {
-            roomService = service.TotalRoomService();
-            Console.WriteLine($"Room service  : {roomService:N0}");
+            serviceTotal = service.TotalRoomService();
+            Console.WriteLine($"Room service  : {serviceTotal:N0}");
         }
 
-        int subtotal = roomOnly + extraTotal + roomService;
-        int discount = 0;
-        if (Guest.Member)
-        {
-            discount = subtotal * 10 / 100;
-        }
+        int subtotal = roomTotal + serviceTotal;
+        int discount = Guest.Member ? subtotal * 10 / 100 : 0;
 
-        Console.WriteLine("-------------------------------------");
         Console.WriteLine($"Subtotal      : {subtotal:N0}");
         Console.WriteLine($"Diskon member : -{discount:N0}");
         Console.WriteLine($"TOTAL         : {subtotal - discount:N0}");
