@@ -1,35 +1,192 @@
-﻿namespace LatihanOOP2.Models;
+﻿using LatihanOOP2.Exceptions;
+using LatihanOOP2.Repositories;
+using System.Xml.Linq;
+
+namespace LatihanOOP2.Models;
 
 public class Hotel
 {
-    private Room[] rooms;
-    private Reservation[] reservations;
-    private int reservationCount;
+    private static readonly string[] RoomTypes = { "Standard", "Deluxe", "Suite" };
+
+    private Repository<Room> rooms;
+    private List<Reservation> reservations = new List<Reservation>();
+    private Dictionary<string, Queue<WaitingGuest>> waitingLists;
+    private int reservationCount
+    {
+        get { return reservations.Count; }
+    }
 
     public Hotel()
     {
-        rooms = new Room[]
+        rooms = new Repository<Room>();
+        rooms.Add(new Standard("101", 1, 500000, "Available"));
+        rooms.Add(new Standard("102", 1, 500000, "Available"));
+        rooms.Add(new Standard("103", 1, 500000, "Available"));
+
+        rooms.Add(new Deluxe("201", 2, 800000, "Available"));
+        rooms.Add(new Deluxe("202", 2, 800000, "Available"));
+        rooms.Add(new Deluxe("203", 2, 800000, "Available"));
+
+        rooms.Add(new Suite("301", 3, 1200000, "Available"));
+        rooms.Add(new Suite("302", 3, 1200000, "Available"));
+        rooms.Add(new Suite("303", 3, 1200000, "Available"));
+
+        reservations = new List<Reservation>();
+        waitingLists = new Dictionary<string, Queue<WaitingGuest>>(StringComparer.OrdinalIgnoreCase);
+        foreach (string type in RoomTypes)
         {
-            new Standard("101", 1, 500000, "Available"),
-            new Standard("102", 1, 500000, "Available"),
-            new Standard("103", 1, 500000, "Available"),
-
-            new Deluxe("201", 2, 800000, "Available"),
-            new Deluxe("202", 2, 800000, "Available"),
-            new Deluxe("203", 2, 800000, "Available"),
-
-            new Suite("301", 3, 1200000, "Available"),
-            new Suite("302", 3, 1200000, "Available"),
-            new Suite("303", 3, 1200000, "Available")
-        };
-
-        reservations = new Reservation[50];
-        reservationCount = 0;
+            waitingLists.Add(type, new Queue<WaitingGuest>());
+        }
     }
 
+    public bool CreateReservation(Reservation res)
+    {
+        if (res.Room.Status == "Occupied")
+        {
+            throw new RoomNotAvailableException(res.Room.RoomNumber, $"Kamar {res.Room.RoomNumber} sedang terisi.");
+        }
+
+        if (IsReserved(res.Room))
+        {
+            throw new RoomNotAvailableException(res.Room.RoomNumber, $"Kamar {res.Room.RoomNumber} sudah dipesan.");
+        }
+
+        reservations.Add(res);
+        return true;
+    }
+
+    public int AddToWaitingList(Guest guest, string type, int nights, int startDay)
+    {
+        if (!IsValidType(type))
+        {
+            throw new ArgumentException("Jenis kamar '" + type + "' tidak dikenal.");
+        }
+
+        WaitingGuest waiting = new WaitingGuest(guest, type, nights, startDay);   // validasi 1-14 malam
+        Queue<WaitingGuest> queue = waitingLists[type];
+        queue.Enqueue(waiting);
+        return queue.Count;
+    }
+
+    public Reservation? AddRoom(Room room)
+    {
+        try
+        {
+            rooms.Add(room);
+        }
+        catch (ArgumentException)
+        {
+            Room.TotalRooms--; 
+            throw;
+        }
+
+        return ProcessWaitingList(room.GetType().Name);
+    }
+
+    public Reservation? ProcessWaitingList(string type)
+    {
+        Queue<WaitingGuest>? queue;
+        if (!waitingLists.TryGetValue(type, out queue) || queue.Count == 0)
+        {
+            return null;
+        }
+
+        Room? room = FindAvailableRoom(type);
+        if (room == null)
+        {
+            return null;
+        }
+
+        WaitingGuest next = queue.Dequeue();
+        Reservation res = new Reservation(next.Guest, room, next.Nights, next.StartDay);
+        CreateReservation(res);
+        return res;
+    }
+
+    public int OccupiedCount()
+    {
+        int occupiedRooms = 0;
+        foreach (Room room in rooms.GetAll())
+        {
+            if (room.Status == "Occupied")
+            {
+                occupiedRooms++;
+            }
+        }
+        return occupiedRooms;
+    }
+
+    public int OccupancyRate()
+    {
+        if (rooms.GetAll().Count == 0)
+        {
+            return 0;
+        }
+
+        return (OccupiedCount() * 100) / rooms.GetAll().Count;
+    }
+
+    public void PrintOccupancyByType()
+    {
+        Console.WriteLine("Per jenis kamar:");
+        foreach (string type in RoomTypes)
+        {
+            int total = 0;
+            int occupied = 0;
+            foreach (Room room in rooms.GetAll())
+            {
+                if (room.GetType().Name.Equals(type, StringComparison.OrdinalIgnoreCase))
+                {
+                    total++;
+                    if (room.Status == "Occupied")
+                    {
+                        occupied++;
+                    }
+                }
+            }
+
+            int percent = total == 0 ? 0 : (occupied * 100) / total;
+            Console.WriteLine($"  {type,-9}: {occupied} dari {total} kamar ({percent}%) | menunggu: {waitingLists[type].Count}");
+        }
+    }
+
+    public void PrintWaitingList()
+    {
+        Console.WriteLine("\n========== DAFTAR TUNGGU ==========");
+        bool any = false;
+        foreach (string type in RoomTypes)
+        {
+            int position = 1;
+            foreach (WaitingGuest w in waitingLists[type])
+            {
+                Console.WriteLine($"{type,-9} #{position} : {w.Guest.Name} ({w.Nights} malam)");
+                position++;
+                any = true;
+            }
+        }
+        if (!any)
+        {
+            Console.WriteLine("Tidak ada tamu dalam daftar tunggu.");
+        }
+    }
+
+    public void PrintRooms()
+    {
+        Console.WriteLine("\n========== DAFTAR KAMAR ==========");
+
+        foreach (Room room in rooms.GetAll())
+        {
+            room.Info();
+
+            GetRoomInfo(room);
+            Console.WriteLine();
+        }
+    }
+
+    #region Helper
     public Room? FindAvailableRoom(string type)
     {
-        foreach (Room room in rooms)
+        foreach (Room room in rooms.GetAll())
         {
             if (room.Status != "Available")
             {
@@ -40,16 +197,7 @@ public class Hotel
                 continue;
             }
 
-            bool sudahDipesan = false;
-            for (int i = 0; i < reservationCount; i++)
-            {
-                if (reservations[i].Status == "Reserved" && reservations[i].Room == room)
-                {
-                    sudahDipesan = true;
-                }
-            }
-
-            if (!sudahDipesan)
+            if (!IsReserved(room))
             {
                 return room;
             }
@@ -58,67 +206,56 @@ public class Hotel
         return null;
     }
 
-    public bool CreateReservation(Reservation res)
+    public Room? FindRoomByNumber(string roomNumber)
     {
-        if (res.Nights < 1 || res.Nights > 14)
-        {
-            return false;
-        }
+        return rooms.GetByNumber(roomNumber);
+    }
 
-        if (res.Room.Status == "Occupied")
+    public Reservation? FindReservation(string roomNumber, string status)
+    {
+        foreach (Reservation res in reservations)
         {
-            return false;
+            if (res.Status == status && res.Room.RoomNumber == roomNumber)
+            {
+                return res;
+            }
         }
+        return null;
+    }
 
+    private bool IsReserved(Room room)
+    {
         for (int i = 0; i < reservationCount; i++)
         {
-            if (reservations[i].Status == "Reserved" && reservations[i].Room == res.Room)
+            if (reservations[i].Status == "Reserved" && reservations[i].Room == room)
             {
-                return false;
+                return true;
             }
         }
-
-        Array.Resize(ref reservations, reservationCount + 1);
-        reservations[reservationCount] = res;
-        reservationCount++;
-
-        return true;
+        return false;
     }
 
-    public int OccupancyRate()
+    public static bool IsValidType(string type)
     {
-        if (rooms.Length == 0)
+        foreach (string t in RoomTypes)
         {
-            return 0;
-        }
-
-        int occupiedRooms = 0;
-        foreach (Room room in rooms)
-        {
-            if (room.Status == "Occupied")
+            if (t.Equals(type, StringComparison.OrdinalIgnoreCase))
             {
-                occupiedRooms++;
+                return true;
             }
         }
-
-        return (occupiedRooms * 100) / rooms.Length;
+        return false;
     }
 
-    public void PrintRooms()
+    private void GetRoomInfo(Room room)
     {
-        Console.WriteLine("\n========== DAFTAR KAMAR ==========");
-
-        foreach (Room room in rooms)
+        for (int i = 0; i < reservationCount; i++)
         {
-            room.Info();
-
-            for (int i = 0; i < reservationCount; i++)
+            if (reservations[i].Status == "Reserved" && reservations[i].Room == room)
             {
-                if (reservations[i].Status == "Reserved" && reservations[i].Room == room)
-                {
-                    Console.WriteLine($"         >> Dipesan oleh {reservations[i].Guest.Name}, belum check-in");
-                }
+                Console.WriteLine($"         >> Dipesan oleh {reservations[i].Guest.Name}, belum check-in");
             }
         }
     }
+#endregion
 }

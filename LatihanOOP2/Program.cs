@@ -1,6 +1,7 @@
-﻿using System;
+﻿using LatihanOOP2.Exceptions;
 using LatihanOOP2.Interfaces;
 using LatihanOOP2.Models;
+using System;
 
 namespace LatihanOOP2
 {
@@ -24,6 +25,8 @@ namespace LatihanOOP2
                 Console.WriteLine("4. Room service");
                 Console.WriteLine("5. Check-out");
                 Console.WriteLine("6. Laporan hunian");
+                Console.WriteLine("7. Tambah kamar baru");
+                Console.WriteLine("8. Daftar tunggu");
                 Console.WriteLine("0. Keluar");
                 Console.Write("Pilih menu: ");
 
@@ -46,6 +49,12 @@ namespace LatihanOOP2
                         break;
                     case "6":
                         OccupancyReport();
+                        break;
+                    case "7":
+                        AddRoomMenu();
+                        break;
+                    case "8":
+                        hotel.PrintWaitingList();
                         break;
                     case "0":
                         running = false;
@@ -101,40 +110,43 @@ namespace LatihanOOP2
                 return;
             }
 
-            Room? room = hotel.FindAvailableRoom(type);
-            if (room == null)
+            try
             {
-                Console.WriteLine("Reservasi ditolak: tidak ada kamar " + type + " yang tersedia (atau jenis kamar salah).");
-                return;
+                Guest guest = new Guest("G" + (guestCounter + 1).ToString("000"), name);
+                guest.Member = (memberInput == "y");
+
+                Room? room = hotel.FindAvailableRoom(type);
+                if (room == null)
+                {
+                    // semua kamar jenis ini penuh -> masuk daftar tunggu (Queue)
+                    int position = hotel.AddToWaitingList(guest, type, nights, startDay);
+                    guestCounter++;
+                    Console.WriteLine("Semua kamar " + type + " penuh. " + name + " masuk daftar tunggu, antrian ke-" + position + ".");
+                    Console.WriteLine("Kamar akan diberikan otomatis saat ada tamu " + type + " yang check-out.");
+                    return;
+                }
+
+                Reservation res = new Reservation(guest, room, nights, startDay);
+                hotel.CreateReservation(res);
+                guestCounter++;
+
+                Console.WriteLine("Reservasi berhasil!");
+                guest.Info();
+                Console.WriteLine($"Kamar    : {room.RoomNumber} ({room.GetType().Name}) selama {res.Nights} malam");
+                Console.WriteLine("Silakan lakukan check-in lewat menu 3.");
             }
-
-            Guest guest = new Guest("G" + (guestCounter + 1).ToString("000"), name);
-            guest.Member = (memberInput == "y");
-
-            Reservation res = new Reservation(guest, room, nights, startDay);
-
-            if (!hotel.CreateReservation(res))
+            catch (InvalidStayDurationException ex)
             {
-                if (res.Nights == 0)
-                {
-                    Console.WriteLine("Reservasi ditolak: lama menginap di luar 1-14 malam.");
-                }
-                else
-                {
-                    Console.WriteLine("Reservasi ditolak: kamar sedang terisi atau sudah dipesan.");
-                }
-                return;
+                Console.WriteLine($"Reservasi ditolak:  {ex.Message}");
             }
-
-            guestCounter++;
-            Array.Resize(ref reservations, reservationCount + 1);
-            reservations[reservationCount] = res;
-            reservationCount++;
-
-            Console.WriteLine("Reservasi berhasil!");
-            guest.Info();
-            Console.WriteLine($"Kamar    : {room.RoomNumber} ({room.GetType().Name}) selama {res.Nights} malam");
-            Console.WriteLine("Silakan lakukan check-in lewat menu 3.");
+            catch (RoomNotAvailableException ex)
+            {
+                Console.WriteLine($"Reservasi ditolak: {ex.Message}");
+            }
+            catch (ArgumentException ex)
+            {
+                Console.WriteLine($"Reservasi ditolak: {ex.Message}");
+            }
         }
 
         static void CheckInMenu()
@@ -144,43 +156,33 @@ namespace LatihanOOP2
             Console.Write("Nomor kamar yang dipesan: ");
             string roomNumber = (Console.ReadLine() ?? "").Trim();
 
-            Reservation? found = null;
-            bool kamarTerisi = false;
-            for (int i = 0; i < reservationCount; i++)
+            try
             {
-                if (reservations[i].Room.RoomNumber == roomNumber)
-                {
-                    if (reservations[i].Status == "Reserved")
-                    {
-                        found = reservations[i];
-                    }
-                    else if (reservations[i].Status == "CheckedIn")
-                    {
-                        kamarTerisi = true;
-                    }
-                }
-            }
+                Reservation? found = hotel.FindReservation(roomNumber, "Reserved");
 
-            if (found == null)
-            {
-                if (kamarTerisi)
+                if (found == null)
                 {
-                    Console.WriteLine("Check-in ditolak: kamar " + roomNumber + " sedang terisi.");
+                    if (hotel.FindReservation(roomNumber, "CheckedIn") != null)
+                    {
+                        throw new RoomNotAvailableException(roomNumber, $"Kamar {roomNumber} sedang terisi.");
+                    }
+
+                    Console.WriteLine($"Check-in ditolak: tidak ada reservasi untuk kamar {roomNumber}. Silakan reservasi dulu (menu 2).");
+                    return;
+                }
+
+                if (found.CheckIn())
+                {
+                    Console.WriteLine($"Check-in berhasil! {found.Guest.Name} (ID {found.Guest.GuestId}) di kamar {roomNumber} selama {found.Nights} malam.");
                 }
                 else
                 {
-                    Console.WriteLine("Check-in ditolak: tidak ada reservasi untuk kamar " + roomNumber + ". Silakan reservasi dulu (menu 2).");
+                    Console.WriteLine("Check-in ditolak.");
                 }
-                return;
             }
-
-            if (found.CheckIn())
+            catch (RoomNotAvailableException ex)
             {
-                Console.WriteLine($"Check-in berhasil! {found.Guest.Name} (ID {found.Guest.GuestId}) di kamar {roomNumber} selama {found.Nights} malam.");
-            }
-            else
-            {
-                Console.WriteLine("Check-in ditolak.");
+                Console.WriteLine($"Check-in ditolak: {ex.Message}");
             }
         }
 
@@ -191,23 +193,21 @@ namespace LatihanOOP2
             Console.Write("Nomor kamar: ");
             string roomNumber = (Console.ReadLine() ?? "").Trim();
 
-            Reservation? found = null;
-            for (int i = 0; i < reservationCount; i++)
-            {
-                if (reservations[i].Status == "CheckedIn" && reservations[i].Room.RoomNumber == roomNumber)
-                {
-                    found = reservations[i];
-                }
-            }
-
+            Reservation? found = hotel.FindReservation(roomNumber, "CheckedIn");
             if (found == null)
             {
                 Console.WriteLine("Ditolak: tidak ada tamu yang menginap di kamar " + roomNumber + ".");
                 return;
             }
 
-            if (found.Room is IRoomService service)
+            try
             {
+                IRoomService? service = found.Room as IRoomService;
+                if (service == null)
+                {
+                    throw new RoomServiceNotSupportedException(roomNumber);
+                }
+
                 Console.Write("Nama menu: ");
                 string menu = (Console.ReadLine() ?? "").Trim();
 
@@ -227,9 +227,9 @@ namespace LatihanOOP2
                     Console.WriteLine("Ditolak: nama menu tidak boleh kosong dan harga harus lebih dari 0.");
                 }
             }
-            else
+            catch (RoomServiceNotSupportedException ex)
             {
-                Console.WriteLine("Ditolak: kamar Standard tidak menyediakan room service.");
+                Console.WriteLine("Ditolak: " + ex.Message);
             }
         }
 
@@ -240,40 +240,92 @@ namespace LatihanOOP2
             Console.Write("Nomor kamar: ");
             string roomNumber = (Console.ReadLine() ?? "").Trim();
 
-            Reservation? found = null;
-            for (int i = 0; i < reservationCount; i++)
-            {
-                if (reservations[i].Status == "CheckedIn" && reservations[i].Room.RoomNumber == roomNumber)
-                {
-                    found = reservations[i];
-                }
-            }
-
+            Reservation? found = hotel.FindReservation(roomNumber, "CheckedIn");
             if (found == null)
             {
                 Console.WriteLine("Check-out gagal: tidak ada tamu yang menginap di kamar " + roomNumber + ".");
                 return;
             }
 
+            string type = found.Room.GetType().Name;
             int total = found.CheckOut();
             Console.WriteLine($"Check-out selesai. Total dibayar: {total:N0}");
+
+            // kamar kosong -> tamu terdepan di daftar tunggu jenis ini mendapat kamar
+            Reservation? promoted = hotel.ProcessWaitingList(type);
+            if (promoted != null)
+            {
+                Console.WriteLine();
+                Console.WriteLine($"[Daftar tunggu] {promoted.Guest.Name} (ID {promoted.Guest.GuestId}) mendapat kamar {promoted.Room.RoomNumber} ({type}) selama {promoted.Nights} malam.");
+                Console.WriteLine("Silakan lakukan check-in lewat menu 3.");
+            }
         }
 
         static void OccupancyReport()
         {
-            int occupied = 0;
-            for (int i = 0; i < reservationCount; i++)
+            Console.WriteLine("\n------ LAPORAN HUNIAN ------");
+            Console.WriteLine($"Kamar terisi : {hotel.OccupiedCount()} dari {Room.TotalRooms} kamar");
+            Console.WriteLine($"Persentase   : {hotel.OccupancyRate()}%");
+            hotel.PrintOccupancyByType();
+        }
+        static void AddRoomMenu()
+        {
+            Console.WriteLine("\n------ TAMBAH KAMAR ------");
+
+            Console.Write("Jenis kamar (standard/deluxe/suite): ");
+            string type = (Console.ReadLine() ?? "").Trim().ToLower();
+
+            Console.Write("Nomor kamar: ");
+            string number = (Console.ReadLine() ?? "").Trim();
+
+            Console.Write("Lantai: ");
+            int floor;
+            if (!int.TryParse(Console.ReadLine(), out floor))
             {
-                if (reservations[i].Status == "CheckedIn")
-                {
-                    occupied++;
-                }
+                Console.WriteLine("Ditolak: lantai harus angka.");
+                return;
             }
 
-            Console.WriteLine("\n------ LAPORAN HUNIAN ------");
-            Console.WriteLine($"Kamar terisi : {occupied} dari {Room.TotalRooms} kamar");
-            Console.WriteLine($"Persentase   : {hotel.OccupancyRate()}%");
-        }
+            Console.Write("Tarif per malam: ");
+            int rate;
+            if (!int.TryParse(Console.ReadLine(), out rate))
+            {
+                Console.WriteLine("Ditolak: tarif harus angka.");
+                return;
+            }
 
+            try
+            {
+                Room room;
+                switch (type)
+                {
+                    case "standard":
+                        room = new Standard(number, floor, rate, "Available");
+                        break;
+                    case "deluxe":
+                        room = new Deluxe(number, floor, rate, "Available");
+                        break;
+                    case "suite":
+                        room = new Suite(number, floor, rate, "Available");
+                        break;
+                    default:
+                        Console.WriteLine("Ditolak: jenis kamar tidak dikenal.");
+                        return;
+                }
+
+                Reservation? promoted = hotel.AddRoom(room);
+                Console.WriteLine("Kamar " + number + " (" + room.GetType().Name + ") berhasil ditambahkan.");
+
+                if (promoted != null)
+                {
+                    Console.WriteLine($"[Daftar tunggu] {promoted.Guest.Name} (ID {promoted.Guest.GuestId}) mendapat kamar {promoted.Room.RoomNumber} selama {promoted.Nights} malam.");
+                    Console.WriteLine("Silakan lakukan check-in lewat menu 3.");
+                }
+            }
+            catch (ArgumentException ex)
+            {
+                Console.WriteLine($"Ditolak: {ex.Message}");
+            }
+        }
     }
 }

@@ -5,32 +5,43 @@ public abstract class Room
     public static int TotalRooms { get; set; } = 0;
     public string RoomNumber { get; private set; }
     public int Floor { get; set; }
-    public int NightlyRateValue { get; set; }
+    public int NightlyRate
+    {
+        get;
+        set
+        {
+            if (value <= 0)
+            {
+                throw new ArgumentException("Tarif per malam harus lebih dari 0.");
+            }
+            field = value;
+        }
+    }
     public string Status { get; private set; }
 
     public Room(string roomNumber, int floor, int nightlyRate, string status)
     {
         RoomNumber = roomNumber;
         Floor = floor;
-        NightlyRateValue = nightlyRate;
+        NightlyRate = nightlyRate;
         Status = status;
         TotalRooms++;
     }
 
     public abstract int ExtraChargePerNight();
 
-    protected virtual int NightlyRate(int day)
+    protected virtual int NightlyRateValue(int day)
     {
         if (day == 5 || day == 6)
         {
-            return NightlyRateValue + (NightlyRateValue * 20 / 100);
+            return NightlyRate + (NightlyRate * 20 / 100);
         }
-        return NightlyRateValue;
+        return NightlyRate;
     }
 
     public int CalculateTotal(int nights)
     {
-        return (NightlyRate(1) + ExtraChargePerNight()) * nights;
+        return (NightlyRateValue(1) + ExtraChargePerNight()) * nights;
     }
 
     public int CalculateTotal(int nights, int startDay)
@@ -39,7 +50,7 @@ public abstract class Room
         for (int i = 0; i < nights; i++)
         {
             int currentDay = ((startDay + i - 1) % 7) + 1;
-            total += NightlyRate(currentDay) + ExtraChargePerNight();
+            total += NightlyRateValue(currentDay) + ExtraChargePerNight();
         }
         return total;
     }
@@ -62,6 +73,6 @@ public abstract class Room
     public virtual void Info()
     {
         string statusText = (Status == "Available") ? "Kosong" : "Terisi";
-        Console.WriteLine($"Kamar {RoomNumber} | Lantai {Floor} | {GetType().Name} | Tarif {NightlyRateValue:N0}/malam | {statusText}");
+        Console.WriteLine($"Kamar {RoomNumber} | Lantai {Floor} | {GetType().Name} | Tarif {NightlyRate:N0}/malam | {statusText}");
     }
 }

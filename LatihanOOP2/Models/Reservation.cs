@@ -1,4 +1,5 @@
-﻿using LatihanOOP2.Interfaces;
+﻿using LatihanOOP2.Exceptions;
+using LatihanOOP2.Interfaces;
 
 namespace LatihanOOP2.Models;
 
@@ -15,7 +16,7 @@ public class Reservation
         {
             if (value < 1 || value > 14)
             {
-                Console.WriteLine("Validasi: lama menginap harus 1 sampai 14 malam.");
+                throw new InvalidStayDurationException(value);
             }
             else
             {
@@ -46,8 +47,7 @@ public class Reservation
 
         if (!Room.Occupy())
         {
-            Console.WriteLine("Tidak bisa check-in: kamar sedang terisi.");
-            return false;
+            throw new RoomNotAvailableException(Room.RoomNumber, $"Kamar {Room.RoomNumber} sedang terisi.");
         }
 
         Status = "CheckedIn";
