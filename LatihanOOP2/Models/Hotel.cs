@@ -1,17 +1,17 @@
-﻿using LatihanOOP2.Exceptions;
+﻿
+using LatihanOOP2.Exceptions;
 using LatihanOOP2.Repositories;
 
 namespace LatihanOOP2.Models;
 
 public class Hotel
 {
-    private readonly List<global::Room> _rooms = new();
     private readonly List<Reservation> _reservations = new();
-    private readonly Dictionary<string, global::Room> _roomsByNumber = new();
+    private readonly Dictionary<string, Room> _roomsByNumber = new();
     private readonly Queue<WaitlistEntry> _waitlist = new();
-    private readonly Repository<global::Room> _repository = new();
+    private readonly Repository<Room> _repository = new();
 
-    public List<global::Room> Rooms => new(_rooms);
+    public List<Room> Rooms => _repository.GetAll();
     public List<Reservation> Reservations => new(_reservations);
 
     public Hotel()
@@ -29,28 +29,29 @@ public class Hotel
         AddRoom(new Suite("303", 3, 1200000, "Available"));
     }
 
-    private void AddRoom(global::Room room)
+    private void AddRoom(Room room)
     {
-        _rooms.Add(room);
-        _roomsByNumber.Add(room.RoomNumber, room);
         _repository.Add(room);
+        _roomsByNumber.Add(room.RoomNumber, room);
     }
 
-    public global::Room? FindRoom(string roomNumber)
+    public Room? FindRoom(string roomNumber)
     {
-        _roomsByNumber.TryGetValue(roomNumber, out var room);
-        return room;
+        return _roomsByNumber.TryGetValue(roomNumber, out var room)
+            ? room
+            : null;
     }
 
     public Reservation? FindReservation(string roomNumber, string status)
     {
         return _reservations.LastOrDefault(r =>
-            r.Room.RoomNumber == roomNumber && r.Status == status);
+            r.Room.RoomNumber == roomNumber &&
+            r.Status == status);
     }
 
-    public global::Room? FindAvailableRoom(string type)
+    public Room? FindAvailableRoom(string type)
     {
-        return _rooms.FirstOrDefault(room =>
+        return Rooms.FirstOrDefault(room =>
             room.GetType().Name.Equals(
                 type, StringComparison.OrdinalIgnoreCase) &&
             room.Status == "Available" &&
@@ -62,20 +63,26 @@ public class Hotel
         Guest guest, string type, int nights, int startDay)
     {
         if (nights < 1 || nights > 14)
+        {
             throw new InvalidStayDurationException(
                 "Lama menginap harus antara 1 sampai 14 malam.");
+        }
 
-        global::Room? room = FindAvailableRoom(type);
+        Room? room = FindAvailableRoom(type);
 
         if (room == null)
         {
-            _waitlist.Enqueue(new WaitlistEntry(guest, type, nights, startDay));
+            _waitlist.Enqueue(
+                new WaitlistEntry(guest, type, nights, startDay));
+
             throw new RoomNotAvailableException(
-                $"Kamar {type} penuh. Tamu {guest.Name} dimasukkan ke daftar tunggu.");
+                $"Kamar {type} penuh. Tamu {guest.Name} " +
+                "dimasukkan ke daftar tunggu.");
         }
 
         var reservation = new Reservation(guest, room, nights, startDay);
         _reservations.Add(reservation);
+
         return reservation;
     }
 
@@ -84,8 +91,10 @@ public class Hotel
         var reservation = FindReservation(roomNumber, "Reserved");
 
         if (reservation == null)
+        {
             throw new RoomNotAvailableException(
                 $"Tidak ada reservasi aktif untuk kamar {roomNumber}.");
+        }
 
         reservation.CheckIn();
     }
@@ -95,21 +104,28 @@ public class Hotel
         var reservation = FindReservation(roomNumber, "CheckedIn");
 
         if (reservation == null)
+        {
             throw new RoomNotAvailableException(
                 $"Tidak ada tamu yang check-in di kamar {roomNumber}.");
+        }
 
         int total = reservation.CheckOut();
+
         AssignWaitlistGuest(reservation.Room.GetType().Name);
+
         return total;
     }
 
-    public int OrderRoomService(string roomNumber, string menu, int price)
+    public int OrderRoomService(
+        string roomNumber, string menu, int price)
     {
         var reservation = FindReservation(roomNumber, "CheckedIn");
 
         if (reservation == null)
+        {
             throw new RoomNotAvailableException(
                 $"Tidak ada tamu yang check-in di kamar {roomNumber}.");
+        }
 
         return reservation.OrderRoomService(menu, price);
     }
@@ -127,14 +143,18 @@ public class Hotel
         foreach (var entry in waitingGuests)
         {
             if (!assigned &&
-                entry.RoomType.Equals(type, StringComparison.OrdinalIgnoreCase))
+                entry.RoomType.Equals(
+                    type, StringComparison.OrdinalIgnoreCase))
             {
                 var room = FindAvailableRoom(type);
 
                 if (room != null)
                 {
                     _reservations.Add(new Reservation(
-                        entry.Guest, room, entry.Nights, entry.StartDay));
+                        entry.Guest,
+                        room,
+                        entry.Nights,
+                        entry.StartDay));
 
                     Console.WriteLine(
                         $"Kamar {room.RoomNumber} disiapkan untuk tamu " +
@@ -153,7 +173,7 @@ public class Hotel
     {
         Console.WriteLine("\n========== DAFTAR KAMAR ==========");
 
-        foreach (var room in _rooms)
+        foreach (var room in Rooms)
         {
             room.Info();
 
@@ -161,19 +181,24 @@ public class Hotel
                 r.Room == room && r.Status == "Reserved");
 
             if (reservation != null)
-                Console.WriteLine($"  Dipesan oleh: {reservation.Guest.Name}");
+            {
+                Console.WriteLine(
+                    $"  Dipesan oleh: {reservation.Guest.Name}");
+            }
         }
 
-        Console.WriteLine($"Jumlah tamu dalam antrean: {_waitlist.Count}");
+        Console.WriteLine(
+            $"Jumlah tamu dalam antrean: {_waitlist.Count}");
     }
 
     public int OccupancyRate()
     {
-        if (_rooms.Count == 0)
+        if (Rooms.Count == 0)
             return 0;
 
-        int occupied = _rooms.Count(r => r.Status == "Occupied");
-        return occupied * 100 / _rooms.Count;
+        int occupied = Rooms.Count(room => room.Status == "Occupied");
+
+        return occupied * 100 / Rooms.Count;
     }
 
     public void PrintOccupancyReport()
@@ -182,16 +207,18 @@ public class Hotel
 
         foreach (string type in new[] { "Standard", "Deluxe", "Suite" })
         {
-            int total = _rooms.Count(r => r.GetType().Name == type);
-            int occupied = _rooms.Count(r =>
-                r.GetType().Name == type && r.Status == "Occupied");
+            int total = Rooms.Count(room => room.GetType().Name == type);
+
+            int occupied = Rooms.Count(room =>
+                room.GetType().Name == type &&
+                room.Status == "Occupied");
 
             Console.WriteLine(
                 $"{type,-10}: {occupied}/{total} kamar terisi");
         }
 
-        Console.WriteLine($"Total kamar : {_rooms.Count}");
-        Console.WriteLine($"Hunian      : {OccupancyRate()}%");
+        Console.WriteLine($"Total kamar  : {Rooms.Count}");
+        Console.WriteLine($"Hunian       : {OccupancyRate()}%");
         Console.WriteLine($"Daftar tunggu: {_waitlist.Count}");
     }
 }

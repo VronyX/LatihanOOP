@@ -1,6 +1,6 @@
 ﻿namespace LatihanOOP2.Repositories;
 
-public class Repository<T> where T : global::Room
+public class Repository<T> where T : Room
 {
     private readonly List<T> _items = new();
 
