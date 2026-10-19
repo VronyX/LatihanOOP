@@ -153,9 +153,15 @@ namespace LatihanOOP2
 
             Console.Write("Nomor kamar yang dipesan: ");
             string roomNumber = (Console.ReadLine() ?? "").Trim();
-
+            
             try
             {
+                if (hotel.FindRoomByNumber(roomNumber) == null)
+                {
+                    Console.WriteLine($"Check-in ditolak: kamar {roomNumber} tidak ditemukan.");
+                    return;
+                }
+
                 Reservation? found = hotel.FindReservation(roomNumber, "Reserved");
 
                 if (found == null)
