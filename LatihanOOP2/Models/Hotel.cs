@@ -1,4 +1,7 @@
 ﻿
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 using LatihanOOP2.Exceptions;
 using LatihanOOP2.Repositories;
 
@@ -67,7 +70,10 @@ public class Hotel
     }
 
     public Reservation CreateReservation(
-        Guest guest, string type, int nights, int startDay)
+        Guest guest,
+        string type,
+        int nights,
+        int startDay)
     {
         if (nights < 1 || nights > 14)
         {
@@ -87,7 +93,9 @@ public class Hotel
                 "dimasukkan ke daftar tunggu.");
         }
 
-        var reservation = new Reservation(guest, room, nights, startDay);
+        var reservation = new Reservation(
+            guest, room, nights, startDay);
+
         _reservations.Add(reservation);
 
         return reservation;
@@ -106,7 +114,8 @@ public class Hotel
         reservation.CheckIn();
     }
 
-    public int CheckOut(string roomNumber)
+    // CHECK-OUT ASYNC
+    public async Task<int> CheckOutAsync(string roomNumber)
     {
         var reservation = FindReservation(roomNumber, "CheckedIn");
 
@@ -116,15 +125,25 @@ public class Hotel
                 $"Tidak ada tamu yang check-in di kamar {roomNumber}.");
         }
 
-        int total = reservation.CheckOut();
+        // Simpan jenis kamar sebelum proses check-out.
+        string roomType = reservation.Room.GetType().Name;
 
-        AssignWaitlistGuest(reservation.Room.GetType().Name);
+        // Hitung tagihan dan tunggu proses pembersihan kamar.
+        int total = await reservation.CheckOutAsync();
+
+        Console.WriteLine(
+            $"Check-out kamar {roomNumber} selesai.");
+
+        // Setelah pembersihan selesai, kamar sudah Available.
+        AssignWaitlistGuest(roomType);
 
         return total;
     }
 
     public int OrderRoomService(
-        string roomNumber, string menu, int price)
+        string roomNumber,
+        string menu,
+        int price)
     {
         var reservation = FindReservation(roomNumber, "CheckedIn");
 
@@ -203,7 +222,8 @@ public class Hotel
         if (Rooms.Count == 0)
             return 0;
 
-        int occupied = Rooms.Count(room => room.Status == "Occupied");
+        int occupied = Rooms.Count(
+            room => room.Status == "Occupied");
 
         return occupied * 100 / Rooms.Count;
     }
@@ -214,7 +234,8 @@ public class Hotel
 
         foreach (string type in new[] { "Standard", "Deluxe", "Suite" })
         {
-            int total = Rooms.Count(room => room.GetType().Name == type);
+            int total = Rooms.Count(
+                room => room.GetType().Name == type);
 
             int occupied = Rooms.Count(room =>
                 room.GetType().Name == type &&

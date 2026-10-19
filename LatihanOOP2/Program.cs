@@ -1,6 +1,6 @@
-﻿
-using System;
+﻿using System;
 using System.Linq;
+using System.Threading.Tasks;
 using LatihanOOP2.Exceptions;
 using LatihanOOP2.Interfaces;
 using LatihanOOP2.Models;
@@ -12,7 +12,7 @@ internal class Program
     private static readonly Hotel hotel = new();
     private static int guestCounter;
 
-    static void Main()
+    static async Task Main()
     {
         SeedDummyData();
 
@@ -52,7 +52,7 @@ internal class Program
                     break;
 
                 case "5":
-                    CheckOutMenu();
+                    await CheckOutMenu();
                     break;
 
                 case "6":
@@ -102,6 +102,7 @@ internal class Program
             string type = (Console.ReadLine() ?? "").Trim();
 
             Console.Write("Lama menginap (1-14 malam): ");
+
             if (!int.TryParse(Console.ReadLine(), out int nights))
             {
                 throw new InvalidStayDurationException(
@@ -109,6 +110,7 @@ internal class Program
             }
 
             Console.Write("Hari mulai (1=Senin, 7=Minggu): ");
+
             if (!int.TryParse(Console.ReadLine(), out int startDay))
             {
                 throw new ArgumentException(
@@ -127,6 +129,7 @@ internal class Program
                 startDay);
 
             Console.WriteLine("\nReservasi berhasil.");
+
             guest.Info();
 
             Console.WriteLine(
@@ -178,6 +181,7 @@ internal class Program
             string menu = (Console.ReadLine() ?? "").Trim();
 
             Console.Write("Harga: ");
+
             if (!int.TryParse(Console.ReadLine(), out int price))
             {
                 throw new ArgumentException(
@@ -202,19 +206,41 @@ internal class Program
         }
     }
 
-    // CHECK-OUT
+    // CHECK-OUT ASYNC
 
-    static void CheckOutMenu()
+    static async Task CheckOutMenu()
     {
         try
         {
             Console.Write("Nomor kamar: ");
             string roomNumber = (Console.ReadLine() ?? "").Trim();
 
-            int total = hotel.CheckOut(roomNumber);
+            // Cari reservasi yang masih berstatus CheckedIn.
+            var reservation = hotel.Reservations.FirstOrDefault(
+                res =>
+                    res.Room.RoomNumber.Equals(
+                        roomNumber,
+                        StringComparison.OrdinalIgnoreCase)
+                    && res.Status == "CheckedIn");
+
+            if (reservation == null)
+            {
+                throw new InvalidOperationException(
+                    "Reservasi tidak ditemukan atau tamu belum check-in.");
+            }
+
+            Console.WriteLine("\nMemproses check-out...");
+
+            int total = await reservation.CheckOutAsync();
 
             Console.WriteLine(
-                $"Check-out berhasil. Total dibayar: Rp{total:N0}");
+                $"\nCheck-out berhasil. Total dibayar: Rp{total:N0}");
+
+            Console.WriteLine(
+                $"Status reservasi: {reservation.Status}");
+
+            Console.WriteLine(
+                $"Status kamar: {reservation.Room.Status}");
         }
         catch (RoomNotAvailableException ex)
         {
@@ -237,14 +263,14 @@ internal class Program
                 RoomType = group.Key,
                 TotalRooms = group.Count(),
 
-                OccupiedRooms = group.Count(room =>
-                    room.Status == "Occupied"),
+                OccupiedRooms = group.Count(
+                    room => room.Status == "Occupied"),
 
                 OccupancyPercentage = group.Count() == 0
                     ? 0
-                    : group.Count(room =>
-                        room.Status == "Occupied") * 100.0
-                        / group.Count()
+                    : group.Count(
+                        room => room.Status == "Occupied")
+                        * 100.0 / group.Count()
             })
             .OrderBy(item => item.RoomType);
 
@@ -279,15 +305,16 @@ internal class Program
                 GuestName = group.Key.Name,
                 IsMember = group.Key.Member,
 
-                TotalBill = group.Sum(res =>
-                    res.CalculateBill())
+                TotalBill = group.Sum(
+                    res => res.CalculateBill())
             })
-            .OrderByDescending(item => item.TotalBill);
+            .OrderByDescending(item => item.TotalBill)
+            .ToList();
 
         Console.WriteLine(
             "\n========== TOTAL TAGIHAN TAMU ==========");
 
-        if (!report.Any())
+        if (report.Count == 0)
         {
             Console.WriteLine("Belum ada data reservasi.");
             return;
@@ -320,8 +347,8 @@ internal class Program
                 GuestId = group.Key.GuestId,
                 GuestName = group.Key.Name,
 
-                TotalBill = group.Sum(res =>
-                    res.CalculateBill())
+                TotalBill = group.Sum(
+                    res => res.CalculateBill())
             })
             .OrderByDescending(item => item.TotalBill)
             .FirstOrDefault();
@@ -342,7 +369,7 @@ internal class Program
         Console.WriteLine("==========================================");
     }
 
-    // DATA DUMMY 
+    // DATA DUMMY
 
     static void SeedDummyData()
     {
@@ -377,15 +404,6 @@ internal class Program
         int startDay,
         int roomServiceTotal = 0)
     {
-        Room? room = hotel.FindAvailableRoom(type);
-
-        if (room == null)
-        {
-            Console.WriteLine(
-                $"Kamar {type} tidak tersedia untuk dummy {name}.");
-            return;
-        }
-
         Guest guest = new Guest(
             $"G{++guestCounter:000}",
             name,
@@ -402,7 +420,7 @@ internal class Program
             // Check-in membuat status kamar menjadi Occupied.
             reservation.CheckIn();
 
-            // Tambahkan room service hanya jika kamar mendukungnya.
+            // Tambahkan room service jika kamar mendukungnya.
             if (roomServiceTotal > 0 &&
                 reservation.Room is IRoomService service)
             {

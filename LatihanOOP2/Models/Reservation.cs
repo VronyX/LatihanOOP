@@ -1,4 +1,6 @@
-﻿using LatihanOOP2.Exceptions;
+﻿using System;
+using System.Threading.Tasks;
+using LatihanOOP2.Exceptions;
 using LatihanOOP2.Interfaces;
 
 namespace LatihanOOP2.Models;
@@ -6,20 +8,27 @@ namespace LatihanOOP2.Models;
 public class Reservation
 {
     public int TotalBill { get; set; }
+
     public Guest Guest { get; }
     public Room Room { get; }
     public int Nights { get; }
     public int StartDay { get; }
+
     public string Status { get; private set; } = "Reserved";
 
-    public Reservation(Guest guest, global::Room room, int nights, int startDay)
+    public Reservation(
+        Guest guest,
+        global::Room room,
+        int nights,
+        int startDay)
     {
         if (nights < 1 || nights > 14)
             throw new InvalidStayDurationException(
                 "Lama menginap harus antara 1 sampai 14 malam.");
 
         if (startDay < 1 || startDay > 7)
-            throw new ArgumentException("Hari mulai harus antara 1 sampai 7.");
+            throw new ArgumentException(
+                "Hari mulai harus antara 1 sampai 7.");
 
         Guest = guest;
         Room = room;
@@ -47,46 +56,53 @@ public class Reservation
                 "Kamar Standard tidak menyediakan room service.");
 
         service.OrderRoomService(menu, price);
+
         return service.TotalRoomService();
     }
 
-    public int CheckOut()
+    // Check-out dan pembersihan kamar secara asynchronous.
+    public async Task<int> CheckOutAsync()
     {
         if (Status != "CheckedIn")
             throw new InvalidOperationException(
-                "Tamu belum check-in atau sudah check-out.");
+                "Tamu harus check-in terlebih dahulu sebelum check-out.");
 
+        // Tampilkan rincian tagihan.
         PrintBill();
 
+        // Hitung dan simpan total tagihan.
         int total = CalculateBill();
         TotalBill = total;
 
-        Room.Vacate();
+        // Reservasi selesai, tetapi kamar masih dibersihkan.
         Status = "CheckedOut";
+
+        // Tunggu sampai proses pembersihan selesai.
+        await Room.CleanAsync();
 
         return total;
     }
-
 
     public void PrintBill()
     {
         string[] days =
         {
-        "Senin", "Selasa", "Rabu", "Kamis",
-        "Jumat", "Sabtu", "Minggu"
-    };
+            "Senin", "Selasa", "Rabu", "Kamis",
+            "Jumat", "Sabtu", "Minggu"
+        };
 
         int roomTotal = 0;
 
         Console.WriteLine("\n============== TAGIHAN ==============");
         Console.WriteLine($"Tamu  : {Guest.Name}");
-        Console.WriteLine($"Kamar : {Room.RoomNumber} ({Room.GetType().Name})");
+        Console.WriteLine(
+            $"Kamar : {Room.RoomNumber} ({Room.GetType().Name})");
 
         for (int i = 0; i < Nights; i++)
         {
             int day = ((StartDay + i - 1) % 7) + 1;
-            int nightly = Room.CalculateTotal(1, day);
 
+            int nightly = Room.CalculateTotal(1, day);
             roomTotal += nightly;
 
             string note = day == 5 || day == 6
@@ -94,7 +110,8 @@ public class Reservation
                 : "";
 
             Console.WriteLine(
-                $"Malam {i + 1} ({days[day - 1]}) : {nightly:N0}{note}");
+                $"Malam {i + 1} ({days[day - 1]}) : " +
+                $"{nightly:N0}{note}");
         }
 
         int extraCharge = Room.ExtraChargePerNight() * Nights;
@@ -120,34 +137,28 @@ public class Reservation
         Console.WriteLine("=====================================");
     }
 
-
-
     public int CalculateBill()
     {
-        // Jika sudah check-out, gunakan total tagihan yang tersimpan.
+        // Gunakan tagihan yang sudah tersimpan setelah check-out.
         if (Status == "CheckedOut")
-        {
             return TotalBill;
-        }
 
-        // Hitung biaya kamar.
-        int total = Room.CalculateTotal(Nights, StartDay);
+        int roomTotal = Room.CalculateTotal(Nights, StartDay);
 
-        // Tambahkan biaya room service jika didukung.
+        int extraCharge =
+            Room.ExtraChargePerNight() * Nights;
+
+        int serviceTotal = 0;
+
         if (Room is IRoomService service)
-        {
-            total += service.TotalRoomService();
-        }
+            serviceTotal = service.TotalRoomService();
 
-        // Tambahkan biaya ekstra kamar.
-        total += Room.ExtraChargePerNight() * Nights;
+        int subtotal = roomTotal + extraCharge + serviceTotal;
 
-        // Diskon 10% untuk member.
-        if (Guest.Member)
-        {
-            total -= total * 10 / 100;
-        }
+        int discount = Guest.Member
+            ? subtotal * 10 / 100
+            : 0;
 
-        return total;
+        return subtotal - discount;
     }
 }
