@@ -84,7 +84,7 @@ internal class Program
         Console.WriteLine("Terima kasih.");
     }
 
-    // ==================== RESERVASI ====================
+    // RESERVASI
 
     static void ReserveMenu()
     {
@@ -142,7 +142,7 @@ internal class Program
         }
     }
 
-    // ==================== CHECK-IN ====================
+    // CHECK-IN
 
     static void CheckInMenu()
     {
@@ -165,7 +165,7 @@ internal class Program
         }
     }
 
-    // ==================== ROOM SERVICE ====================
+    // ROOM SERVICE
 
     static void RoomServiceMenu()
     {
@@ -202,7 +202,7 @@ internal class Program
         }
     }
 
-    // ==================== CHECK-OUT ====================
+    // CHECK-OUT
 
     static void CheckOutMenu()
     {
@@ -226,7 +226,7 @@ internal class Program
         }
     }
 
-    // ==================== LAPORAN HUNIAN LINQ ====================
+    // LAPORAN HUNIAN LINQ
 
     static void OccupancyByRoomTypeReport()
     {
@@ -262,7 +262,7 @@ internal class Program
         Console.WriteLine("====================================");
     }
 
-    // ==================== TOTAL TAGIHAN PER TAMU LINQ ====================
+    // TOTAL TAGIHAN PER TAMU LINQ
 
     static void TotalBillPerGuestReport()
     {
@@ -304,7 +304,7 @@ internal class Program
         Console.WriteLine("========================================");
     }
 
-    // ==================== MEMBER DENGAN TAGIHAN TERBESAR LINQ ====================
+    // MEMBER DENGAN TAGIHAN TERBESAR LINQ
 
     static void HighestMemberBillReport()
     {
@@ -342,7 +342,7 @@ internal class Program
         Console.WriteLine("==========================================");
     }
 
-    // ==================== DATA DUMMY ====================
+    // DATA DUMMY 
 
     static void SeedDummyData()
     {

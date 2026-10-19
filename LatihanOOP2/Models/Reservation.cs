@@ -7,7 +7,7 @@ public class Reservation
 {
     public int TotalBill { get; set; }
     public Guest Guest { get; }
-    public global::Room Room { get; }
+    public Room Room { get; }
     public int Nights { get; }
     public int StartDay { get; }
     public string Status { get; private set; } = "Reserved";
