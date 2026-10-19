@@ -72,7 +72,24 @@ public abstract class Room
 
     public virtual void Info()
     {
-        string statusText = (Status == "Available") ? "Kosong" : "Terisi";
+        string statusText = Status switch
+        {
+            "Available" => "Kosong",
+            "Occupied" => "Terisi",
+            "Cleaning" => "Sedang dibersihkan",
+            _ => Status
+        };
         Console.WriteLine($"Kamar {RoomNumber} | Lantai {Floor} | {GetType().Name} | Tarif {NightlyRate:N0}/malam | {statusText}");
+    }
+
+    public bool StartCleaning()
+    {
+        if (Status != "Occupied")
+        {
+            return false;
+        }
+
+        Status = "Cleaning";
+        return true;
     }
 }

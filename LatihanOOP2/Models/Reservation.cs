@@ -76,7 +76,11 @@ public class Reservation
             total = total - (total * 10 / 100);
         }
 
-        Room.Vacate();
+        if (!Room.StartCleaning())
+        {
+            Console.WriteLine($"Peringatan: status kamar {Room.RoomNumber} tidak bisa diubah ke Cleaning.");
+        }
+
         Status = "CheckedOut";
 
         return total;
@@ -149,5 +153,27 @@ public class Reservation
         Console.WriteLine($"Diskon member : -{discount:N0}");
         Console.WriteLine($"TOTAL         : {subtotal - discount:N0}");
         Console.WriteLine("=====================================");
+    }
+
+    public void MarkPendingConfirmation()
+    {
+        if (Status == "Reserved")
+        {
+            Status = "PendingConfirmation";
+        }
+    }
+
+    public bool ConfirmOnlineReservation()
+    {
+        if (Status != "PendingConfirmation") return false;
+        Status = "Reserved";
+        return true;
+    }
+
+    public bool CancelPendingReservation()
+    {
+        if (Status != "PendingConfirmation") return false;
+        Status = "Cancelled";
+        return true;
     }
 }

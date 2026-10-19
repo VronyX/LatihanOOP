@@ -9,6 +9,7 @@ namespace LatihanOOP2
     {
         static Hotel hotel = new Hotel();
         static int guestCounter = 0;
+        const int timeoutSeconds = 5;
 
         static void Main(string[] args)
         {
@@ -27,6 +28,7 @@ namespace LatihanOOP2
                 Console.WriteLine("8. Daftar tunggu");
                 Console.WriteLine("9. List Kamar Kosong");
                 Console.WriteLine("10. Total Room Service");
+                Console.WriteLine("11. Reservasi Online (simulasi timeout)");
                 Console.WriteLine("0. Keluar");
                 Console.Write("Pilih menu: ");
 
@@ -45,7 +47,7 @@ namespace LatihanOOP2
                         RoomServiceMenu();
                         break;
                     case "5":
-                        CheckOutMenu();
+                        CheckOutMenuAsync().Wait();
                         break;
                     case "6":
                         OccupancyReport();
@@ -61,6 +63,9 @@ namespace LatihanOOP2
                         break;
                     case "10":
                         TotalRoomService();
+                        break;
+                    case "11":
+                        OnlineReservationMenuAsync().Wait();
                         break;
                     case "0":
                         running = false;
@@ -245,7 +250,7 @@ namespace LatihanOOP2
             }
         }
 
-        static void CheckOutMenu()
+        static async Task CheckOutMenuAsync()
         {
             Console.WriteLine("\n------ CHECK-OUT ------");
 
@@ -262,6 +267,9 @@ namespace LatihanOOP2
             string type = found.Room.GetType().Name;
             int total = found.CheckOut();
             Console.WriteLine($"Check-out selesai. Total dibayar: {total:N0}");
+            Console.WriteLine($"Status kamar {roomNumber}: {found.Room.Status}");
+
+            await hotel.CleanRoomAsync(found.Room);
 
             // kamar kosong -> tamu terdepan di daftar tunggu jenis ini mendapat kamar
             Reservation? promoted = hotel.ProcessWaitingList(type);
@@ -280,6 +288,7 @@ namespace LatihanOOP2
             Console.WriteLine($"Persentase   : {hotel.OccupancyRate()}%");
             hotel.PrintOccupancyByType();
         }
+
         static void AddRoomMenu()
         {
             Console.WriteLine("\n------ TAMBAH KAMAR ------");
@@ -368,6 +377,109 @@ namespace LatihanOOP2
             catch (RoomServiceNotSupportedException ex)
             {
                 Console.WriteLine("Ditolak: " + ex.Message);
+            }
+        }
+
+        static async Task OnlineReservationMenuAsync()
+        {
+            Console.WriteLine("\n------ RESERVASI ONLINE (SIMULASI) ------");
+
+            Console.Write("Nama tamu: ");
+            string name = (Console.ReadLine() ?? "").Trim();
+            if (name == "")
+            {
+                Console.WriteLine("Reservasi ditolak: nama tamu tidak boleh kosong.");
+                return;
+            }
+
+            Console.Write("Member? (y/n): ");
+            string memberInput = (Console.ReadLine() ?? "").Trim().ToLower();
+            if (memberInput == "")
+            {
+                Console.WriteLine("Reservasi ditolak: member tamu tidak boleh kosong.");
+                return;
+            }
+
+            Console.Write("Jenis kamar (standard/deluxe/suite): ");
+            string type = (Console.ReadLine() ?? "").Trim();
+            if (type == "")
+            {
+                Console.WriteLine("Reservasi ditolak: type tidak boleh kosong.");
+                return;
+            }
+
+            Console.Write("Lama menginap (malam): ");
+            int nights;
+            if (!int.TryParse(Console.ReadLine(), out nights))
+            {
+                nights = 0;
+            }
+
+            Console.Write("Hari mulai menginap (1=Senin, 2=Selasa, ... 7=Minggu): ");
+            int startDay;
+            if (!int.TryParse(Console.ReadLine(), out startDay) || startDay < 1 || startDay > 7)
+            {
+                Console.WriteLine("Reservasi ditolak: hari mulai harus angka 1 sampai 7.");
+                return;
+            }
+
+            try
+            {
+                Guest guest = new Guest("G" + (guestCounter + 1).ToString("000"), name);
+                guest.Member = memberInput == "y";
+                Room? room = hotel.FindAvailableRoom(type);
+                if (room == null)
+                {
+                    Console.WriteLine($"Tidak ada kamar {type} yang tersedia untuk reservasi online.");
+                    return;
+                }
+
+                Reservation reservation = new Reservation(guest, room, nights, startDay);
+                reservation.MarkPendingConfirmation();
+                hotel.CreateReservation(reservation);
+                guestCounter++;
+
+                Console.WriteLine($"Reservasi sementara untuk kamar {room.RoomNumber} dibuat.");
+                Console.WriteLine($"Ketik Y lalu Enter untuk konfirmasi dalam {timeoutSeconds} detik.");
+                Console.Write("Konfirmasi: ");
+
+                using CancellationTokenSource cts = new CancellationTokenSource();
+                cts.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
+
+                try
+                {
+                    Task<string?> inputTask = Task.Run(Console.ReadLine);
+
+                    string? confirmation = await inputTask.WaitAsync(cts.Token);
+
+                    if (string.Equals(confirmation?.Trim(), "Y", StringComparison.OrdinalIgnoreCase))
+                    { 
+                        reservation.ConfirmOnlineReservation();
+                        Console.WriteLine($"Reservasi dikonfirmasi. Kamar {room.RoomNumber} berstatus Reserved.");
+                    }
+                    else
+                    {
+                        reservation.CancelPendingReservation();
+                        Console.WriteLine("Reservasi online dibatalkan karena tidak dikonfirmasi.");
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    reservation.CancelPendingReservation();
+                    Console.WriteLine("Waktu konfirmasi habis. Reservasi online dibatalkan.");
+                }
+            }
+            catch (InvalidStayDurationException ex)
+            {
+                Console.WriteLine($"Reservasi ditolak: {ex.Message}");
+            }
+            catch (RoomNotAvailableException ex)
+            {
+                Console.WriteLine($"Reservasi ditolak: {ex.Message}");
+            }
+            catch (ArgumentException ex)
+            {
+                Console.WriteLine($"Reservasi ditolak: {ex.Message}");
             }
         }
     }

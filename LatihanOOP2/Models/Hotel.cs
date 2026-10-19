@@ -39,6 +39,20 @@ public class Hotel
         }
     }
 
+    public async Task CleanRoomAsync(Room room)
+    {
+        if (room.Status != "Cleaning")
+        {
+            Console.WriteLine($"Kamar {room.RoomNumber} tidak sedang dalam status Cleaning.");
+            return;
+        }
+
+        Console.WriteLine($"Kamar {room.RoomNumber} mulai dibersihkan...");
+        await Task.Delay(3000);
+        room.Vacate();
+        Console.WriteLine($"Kamar {room.RoomNumber} selesai dibersihkan. Status: {room.Status}");
+    }
+
     public bool CreateReservation(Reservation res)
     {
         if (res.Room.Status == "Occupied")
