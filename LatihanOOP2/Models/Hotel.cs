@@ -107,7 +107,7 @@ public class Hotel
     {
         int occupiedRooms = 0;
         foreach (Room room in rooms.GetAll())
-        {
+            {
             if (room.Status == "Occupied")
             {
                 occupiedRooms++;
@@ -117,7 +117,7 @@ public class Hotel
     }
 
     public int OccupancyRate()
-    {
+        {
         if (rooms.GetAll().Count == 0)
         {
             return 0;
@@ -180,6 +180,19 @@ public class Hotel
 
             GetRoomInfo(room);
             Console.WriteLine();
+        }
+    }
+
+    public void PrintEmptyRoomList()
+    {
+        var roomList = rooms.GetAll();
+        var emptyRoomList = roomList
+            .Where(x => x.Status == "Available")
+            .OrderBy(x => x.NightlyRate);
+
+        foreach (var room in emptyRoomList)
+        {
+            Console.WriteLine($"Room : {room.RoomNumber} | Floor : {room.Floor} | Harga :{room.NightlyRate} | Status: {room.Status}");
         }
     }
 
