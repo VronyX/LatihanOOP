@@ -5,6 +5,7 @@ namespace LatihanOOP2.Models;
 
 public class Reservation
 {
+    public int TotalBill { get; set; }
     public Guest Guest { get; }
     public global::Room Room { get; }
     public int Nights { get; }
@@ -57,13 +58,8 @@ public class Reservation
 
         PrintBill();
 
-        int total = Room.CalculateTotal(Nights, StartDay);
-
-        if (Room is IRoomService service)
-            total += service.TotalRoomService();
-
-        if (Guest.Member)
-            total -= total * 10 / 100;
+        int total = CalculateBill();
+        TotalBill = total;
 
         Room.Vacate();
         Status = "CheckedOut";
@@ -71,13 +67,14 @@ public class Reservation
         return total;
     }
 
+
     public void PrintBill()
     {
         string[] days =
         {
-            "Senin", "Selasa", "Rabu", "Kamis",
-            "Jumat", "Sabtu", "Minggu"
-        };
+        "Senin", "Selasa", "Rabu", "Kamis",
+        "Jumat", "Sabtu", "Minggu"
+    };
 
         int roomTotal = 0;
 
@@ -89,6 +86,7 @@ public class Reservation
         {
             int day = ((StartDay + i - 1) % 7) + 1;
             int nightly = Room.CalculateTotal(1, day);
+
             roomTotal += nightly;
 
             string note = day == 5 || day == 6
@@ -99,8 +97,10 @@ public class Reservation
                 $"Malam {i + 1} ({days[day - 1]}) : {nightly:N0}{note}");
         }
 
+        int extraCharge = Room.ExtraChargePerNight() * Nights;
+
         Console.WriteLine($"Total kamar   : {roomTotal:N0}");
-        Console.WriteLine($"Biaya tambahan: {Room.ExtraChargePerNight() * Nights:N0}");
+        Console.WriteLine($"Biaya tambahan: {extraCharge:N0}");
 
         int serviceTotal = 0;
 
@@ -110,12 +110,44 @@ public class Reservation
             Console.WriteLine($"Room service  : {serviceTotal:N0}");
         }
 
-        int subtotal = roomTotal + serviceTotal;
+        int subtotal = roomTotal + extraCharge + serviceTotal;
         int discount = Guest.Member ? subtotal * 10 / 100 : 0;
+        int total = subtotal - discount;
 
         Console.WriteLine($"Subtotal      : {subtotal:N0}");
         Console.WriteLine($"Diskon member : -{discount:N0}");
-        Console.WriteLine($"TOTAL         : {subtotal - discount:N0}");
+        Console.WriteLine($"TOTAL         : {total:N0}");
         Console.WriteLine("=====================================");
+    }
+
+
+
+    public int CalculateBill()
+    {
+        // Jika sudah check-out, gunakan total tagihan yang tersimpan.
+        if (Status == "CheckedOut")
+        {
+            return TotalBill;
+        }
+
+        // Hitung biaya kamar.
+        int total = Room.CalculateTotal(Nights, StartDay);
+
+        // Tambahkan biaya room service jika didukung.
+        if (Room is IRoomService service)
+        {
+            total += service.TotalRoomService();
+        }
+
+        // Tambahkan biaya ekstra kamar.
+        total += Room.ExtraChargePerNight() * Nights;
+
+        // Diskon 10% untuk member.
+        if (Guest.Member)
+        {
+            total -= total * 10 / 100;
+        }
+
+        return total;
     }
 }

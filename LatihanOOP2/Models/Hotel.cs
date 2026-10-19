@@ -12,6 +12,7 @@ public class Hotel
     private readonly Repository<Room> _repository = new();
 
     public List<Room> Rooms => _repository.GetAll();
+
     public List<Reservation> Reservations => new(_reservations);
 
     public Hotel()
@@ -19,14 +20,20 @@ public class Hotel
         AddRoom(new Standard("101", 1, 500000, "Available"));
         AddRoom(new Standard("102", 1, 500000, "Available"));
         AddRoom(new Standard("103", 1, 500000, "Available"));
+        AddRoom(new Standard("104", 1, 500000, "Available"));
+        AddRoom(new Standard("105", 1, 500000, "Available"));
 
         AddRoom(new Deluxe("201", 2, 800000, "Available"));
         AddRoom(new Deluxe("202", 2, 800000, "Available"));
         AddRoom(new Deluxe("203", 2, 800000, "Available"));
+        AddRoom(new Deluxe("204", 2, 800000, "Available"));
+        AddRoom(new Deluxe("205", 2, 800000, "Available"));
 
         AddRoom(new Suite("301", 3, 1200000, "Available"));
         AddRoom(new Suite("302", 3, 1200000, "Available"));
         AddRoom(new Suite("303", 3, 1200000, "Available"));
+        AddRoom(new Suite("304", 3, 1200000, "Available"));
+        AddRoom(new Suite("305", 3, 1200000, "Available"));
     }
 
     private void AddRoom(Room room)
