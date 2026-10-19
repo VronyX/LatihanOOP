@@ -25,6 +25,8 @@ namespace LatihanOOP2
                 Console.WriteLine("6. Laporan hunian");
                 Console.WriteLine("7. Tambah kamar baru");
                 Console.WriteLine("8. Daftar tunggu");
+                Console.WriteLine("9. List Kamar Kosong");
+                Console.WriteLine("10. Total Room Service");
                 Console.WriteLine("0. Keluar");
                 Console.Write("Pilih menu: ");
 
@@ -53,6 +55,12 @@ namespace LatihanOOP2
                         break;
                     case "8":
                         hotel.PrintWaitingList();
+                        break;
+                    case "9":
+                        hotel.PrintEmptyRoomList();
+                        break;
+                    case "10":
+                        TotalRoomService();
                         break;
                     case "0":
                         running = false;
@@ -329,6 +337,37 @@ namespace LatihanOOP2
             catch (ArgumentException ex)
             {
                 Console.WriteLine($"Ditolak: {ex.Message}");
+            }
+        }
+
+        private static void TotalRoomService()
+        {
+            Console.WriteLine("\n------ TOTAL ROOM SERVICE ------");
+
+            Console.Write("Nomor kamar: ");
+            string roomNumber = (Console.ReadLine() ?? "").Trim();
+
+            Reservation? found = hotel.FindReservation(roomNumber, "CheckedIn");
+            if (found == null)
+            {
+                Console.WriteLine("Ditolak: tidak ada tamu yang menginap di kamar " + roomNumber + ".");
+                return;
+            }
+
+            try
+            {
+                IRoomService? service = found.Room as IRoomService;
+                if (service == null)
+                {
+                    throw new RoomServiceNotSupportedException(roomNumber);
+                }
+
+                service.PrintTotalRoomService();
+
+            }
+            catch (RoomServiceNotSupportedException ex)
+            {
+                Console.WriteLine("Ditolak: " + ex.Message);
             }
         }
     }

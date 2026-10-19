@@ -1,14 +1,15 @@
-﻿using LatihanOOP2.Interfaces;
+﻿
+using LatihanOOP2.Interfaces;
 using System;
+using System.Linq;
 
 public class Deluxe : Room, IRoomService
 {
-    private int totalRoomService;
+    private int[] roomServicePrices = Array.Empty<int>();
 
     public Deluxe(string roomNumber, int floor, int nightlyRate, string status)
         : base(roomNumber, floor, nightlyRate, status)
     {
-        totalRoomService = 0;
     }
 
     public override int ExtraChargePerNight()
@@ -22,24 +23,33 @@ public class Deluxe : Room, IRoomService
         {
             return false;
         }
-        totalRoomService += price;
+
+        roomServicePrices = roomServicePrices
+            .Append(price)
+            .ToArray();
+
         return true;
     }
 
     public int TotalRoomService()
     {
-        return totalRoomService;
+        return roomServicePrices.Sum();
+    }
+
+    public void PrintTotalRoomService()
+    {
+        Console.WriteLine($"Room {RoomNumber} | Total Room Service: {TotalRoomService():N0}");
     }
 
     public override void Info()
     {
         base.Info();
-        Console.WriteLine($"Type: Deluxe, Room Service Total: {totalRoomService}");
+        Console.WriteLine($"Type: Deluxe, Room Service Total: {TotalRoomService():N0}");
     }
 
     public override void Vacate()
     {
         base.Vacate();
-        totalRoomService = 0;
+        roomServicePrices = Array.Empty<int>();
     }
 }
